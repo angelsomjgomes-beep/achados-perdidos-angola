@@ -5,51 +5,67 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Achados & Perdidos Angola</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
 
   <!-- Header -->
   <header class="bg-blue-600 text-white p-4 shadow">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <h1 class="text-xl font-bold">Achados & Perdidos Angola</h1>
-      <nav class="space-x-4">
-        <a href="#publicar" class="hover:underline">Publicar</a>
-        <a href="#pesquisar" class="hover:underline">Pesquisar</a>
-        <a href="admin.html" class="hover:underline">Admin</a>
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <h1 class="text-2xl font-bold flex items-center gap-2">
+        <i data-lucide="search" class="w-6 h-6"></i>
+        Achados & Perdidos Angola
+      </h1>
+      <nav class="space-x-4 text-sm">
+        <a href="#publicar" class="hover:underline">📤 Publicar</a>
+        <a href="#pesquisar" class="hover:underline">🔎 Pesquisar</a>
+        <a href="admin.html" class="hover:underline">⚙️ Admin</a>
       </nav>
     </div>
   </header>
 
-  <main class="flex-1 max-w-4xl mx-auto w-full p-4">
+  <main class="flex-1 max-w-5xl mx-auto w-full p-6 space-y-8">
 
     <!-- Publicar -->
-    <section id="publicar" class="mb-8 bg-white p-6 rounded shadow">
-      <h2 class="text-2xl font-semibold mb-3">Publicar item perdido / encontrado</h2>
+    <section id="publicar" class="bg-white p-6 rounded-2xl shadow-lg">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-6 h-6 text-blue-600"></i>
+        Publicar item perdido / encontrado
+      </h2>
       <form id="form-publicar" class="space-y-4">
-        <select id="tipo" class="w-full p-2 border rounded">
-          <option value="encontrado">Encontrado</option>
-          <option value="perdido">Perdido</option>
-        </select>
-
-        <select id="categoria" class="w-full p-2 border rounded">
-          <option value="Carteira">Carteira</option>
-          <option value="Telemóvel">Telemóvel</option>
-          <option value="Documentos">Documentos</option>
-          <option value="Chaves">Chaves</option>
-          <option value="Outros">Outros</option>
-        </select>
-
+        <div class="grid sm:grid-cols-2 gap-3">
+          <select id="tipo" class="p-2 border rounded">
+            <option value="encontrado">Encontrado</option>
+            <option value="perdido">Perdido</option>
+          </select>
+          <select id="categoria" class="p-2 border rounded">
+            <option value="Carteira">Carteira</option>
+            <option value="Telemóvel">Telemóvel</option>
+            <option value="Documentos">Documentos</option>
+            <option value="Chaves">Chaves</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
         <input id="titulo" required type="text" placeholder="Título" class="w-full p-2 border rounded" />
         <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded"></textarea>
         <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded" />
         <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)" class="w-full p-2 border rounded" />
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Publicar</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+          <i data-lucide="send" class="w-5 h-5"></i> Publicar
+        </button>
       </form>
     </section>
 
     <!-- Pesquisar -->
-    <section id="pesquisar" class="mb-8 bg-white p-6 rounded shadow">
-      <h2 class="text-2xl font-semibold mb-3">Pesquisar itens</h2>
+    <section id="pesquisar" class="bg-white p-6 rounded-2xl shadow-lg">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
+        <i data-lucide="search" class="w-6 h-6 text-blue-600"></i>
+        Pesquisar itens
+      </h2>
 
       <!-- filtros -->
       <div class="grid sm:grid-cols-3 gap-3 mb-4">
@@ -63,7 +79,6 @@
           <option>Outros</option>
         </select>
       </div>
-
       <select id="filterTipo" class="mb-4 p-2 border rounded">
         <option value="">Todos os tipos</option>
         <option value="perdido">Perdido</option>
@@ -97,7 +112,6 @@
     const filterCategoria = document.getElementById("filterCategoria");
     const filterTipo = document.getElementById("filterTipo");
 
-    // publicar item
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const tipo = document.getElementById("tipo").value;
@@ -124,7 +138,6 @@
       carregarItens();
     });
 
-    // carregar lista
     async function carregarItens() {
       lista.innerHTML = "A carregar...";
       const q = query(collection(db, "items"), orderBy("created_at", "desc"));
@@ -133,35 +146,42 @@
 
       snap.forEach(doc => {
         const it = doc.data();
-        if (!it.titulo || it.resolvido) return; // não mostrar resolvidos
-        const card = document.createElement("div");
-        card.className = "p-4 border rounded bg-white";
+        if (!it.titulo || it.resolvido) return;
 
-        // título + destaque
-        let titulo = `<h3 class="font-bold">${it.titulo} (${it.tipo})</h3>`;
-        if (it.destaque) {
-          titulo = `<h3 class="font-bold text-yellow-600">⭐ ${it.titulo} (${it.tipo})</h3>`;
-        }
+        const card = document.createElement("div");
+        card.className = "p-4 border rounded-lg shadow flex gap-4 items-start bg-white hover:shadow-lg transition";
+
+        let badge = it.tipo === "perdido" 
+          ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Perdido</span>'
+          : '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Encontrado</span>';
+
+        let destaque = it.destaque 
+          ? '<span class="ml-2 text-yellow-600 font-bold">⭐ Destaque</span>' 
+          : "";
 
         card.innerHTML = `
-          ${titulo}
-          <p class="text-sm text-gray-600">${it.categoria}</p>
-          <p>${it.descricao || ""}</p>
-          ${it.fotoURL ? `<img src="${it.fotoURL}" class="mt-2 w-40 rounded shadow" loading="lazy"/>` : ""}
-          <p class="mt-2 text-sm text-gray-600">
-            Contacto: <span>${mascararNumero(it.contacto)}</span>
-          </p>
-          <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
-             target="_blank" 
-             class="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded">
-             Falar no WhatsApp
-          </a>
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-28 h-28 object-cover rounded-lg shadow" loading="lazy"/>` : ""}
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <h3 class="text-lg font-semibold">${it.titulo}</h3>
+              ${badge} ${destaque}
+            </div>
+            <p class="text-sm text-gray-500">${it.categoria}</p>
+            <p class="mt-1">${it.descricao || ""}</p>
+            <p class="mt-2 text-sm text-gray-600">Contacto: ${mascararNumero(it.contacto)}</p>
+            <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
+              target="_blank"
+              class="inline-flex items-center gap-1 mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm">
+              <i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp
+            </a>
+          </div>
         `;
         lista.appendChild(card);
       });
+
+      lucide.createIcons();
     }
 
-    // filtro de pesquisa
     function aplicarFiltros() {
       const termo = search.value.toLowerCase();
       const categoria = filterCategoria.value;
@@ -181,7 +201,6 @@
     filterCategoria.addEventListener("change", aplicarFiltros);
     filterTipo.addEventListener("change", aplicarFiltros);
 
-    // mascarar contacto
     function mascararNumero(num) {
       if (!num) return "";
       const n = num.toString();
@@ -193,4 +212,3 @@
   </script>
 </body>
 </html>
-
