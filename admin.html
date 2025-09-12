@@ -12,7 +12,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, deleteDoc, doc } 
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
     import { firebaseConfig } from "./firebase-config.js";
 
@@ -28,18 +28,49 @@
       snap.forEach(d => {
         const it = d.data();
         const div = document.createElement("div");
-        div.className = "p-3 border rounded mb-2 bg-white flex justify-between";
+        div.className = "p-3 border rounded mb-2 bg-white";
+
         div.innerHTML = `
-          <div>
-            <b>${it.titulo}</b> - ${it.tipo}<br>
-            ${it.descricao || ""}
+          <div class="flex justify-between items-start">
+            <div>
+              <b>${it.titulo}</b> - ${it.tipo} <br>
+              Categoria: ${it.categoria || "N/A"} <br>
+              ${it.descricao || ""}
+              <br>
+              <span class="text-sm text-gray-500">Contacto: ${it.contacto}</span>
+              ${it.resolvido ? '<span class="ml-2 text-green-600 font-bold">(Resolvido)</span>' : ""}
+              ${it.destaque ? '<span class="ml-2 text-yellow-600 font-bold">(⭐ Destaque)</span>' : ""}
+            </div>
+            <div class="space-x-2">
+              <button class="bg-green-600 text-white px-2 py-1 rounded text-sm">Resolvido</button>
+              <button class="bg-yellow-500 text-white px-2 py-1 rounded text-sm">Destaque</button>
+              <button class="bg-red-600 text-white px-2 py-1 rounded text-sm">Apagar</button>
+            </div>
           </div>
-          <button class="bg-red-600 text-white px-3 py-1 rounded">Apagar</button>
         `;
-        div.querySelector("button").onclick = async () => {
-          await deleteDoc(doc(db, "items", d.id));
+
+        const [btnResolvido, btnDestaque, btnApagar] = div.querySelectorAll("button");
+
+        // Marcar como resolvido
+        btnResolvido.onclick = async () => {
+          await updateDoc(doc(db, "items", d.id), { resolvido: true });
           carregar();
         };
+
+        // Marcar/Desmarcar destaque
+        btnDestaque.onclick = async () => {
+          await updateDoc(doc(db, "items", d.id), { destaque: !it.destaque });
+          carregar();
+        };
+
+        // Apagar anúncio
+        btnApagar.onclick = async () => {
+          if (confirm("Tens certeza que queres apagar este anúncio?")) {
+            await deleteDoc(doc(db, "items", d.id));
+            carregar();
+          }
+        };
+
         lista.appendChild(div);
       });
     }
