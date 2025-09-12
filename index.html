@@ -15,6 +15,27 @@
 
   <!-- Header -->
   <header class="bg-blue-600 text-white p-4 shadow">
+    <div class="max-w-5xl mx-auto<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Achados & Perdidos Angola</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .navy { background-color: #0a192f; }
+    .navy-text { color: #0a192f; }
+    .navy-btn { background-color: #0a192f; }
+    .navy-btn:hover { background-color: #112240; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="navy text-white p-4 shadow">
     <div class="max-w-5xl mx-auto flex items-center justify-between">
       <h1 class="text-2xl font-bold flex items-center gap-2">
         <i data-lucide="search" class="w-6 h-6"></i>
@@ -22,18 +43,18 @@
       </h1>
       <nav class="space-x-4 text-sm">
         <a href="#publicar" class="hover:underline">📤 Publicar</a>
-        <a href="#pesquisar" class="hover:underline">🔎 Pesquisar</a>
+        <a href="#feed" class="hover:underline">📰 Feed</a>
         <a href="admin.html" class="hover:underline">⚙️ Admin</a>
       </nav>
     </div>
   </header>
 
-  <main class="flex-1 max-w-5xl mx-auto w-full p-6 space-y-8">
+  <main class="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
 
     <!-- Publicar -->
-    <section id="publicar" class="bg-white p-6 rounded-2xl shadow-lg">
-      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="plus-circle" class="w-6 h-6 text-blue-600"></i>
+    <section id="publicar" class="bg-white p-6 rounded-xl shadow-lg">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text">
+        <i data-lucide="plus-circle" class="w-6 h-6"></i>
         Publicar item perdido / encontrado
       </h2>
       <form id="form-publicar" class="space-y-4">
@@ -54,22 +75,22 @@
         <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded"></textarea>
         <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded" />
         <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)" class="w-full p-2 border rounded" />
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+        <button type="submit" class="navy-btn text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <i data-lucide="send" class="w-5 h-5"></i> Publicar
         </button>
       </form>
     </section>
 
-    <!-- Pesquisar -->
-    <section id="pesquisar" class="bg-white p-6 rounded-2xl shadow-lg">
-      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="search" class="w-6 h-6 text-blue-600"></i>
-        Pesquisar itens
+    <!-- Feed -->
+    <section id="feed" class="bg-white p-6 rounded-xl shadow-lg">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text">
+        <i data-lucide="newspaper" class="w-6 h-6"></i>
+        Feed de itens perdidos/encontrados
       </h2>
 
       <!-- filtros -->
-      <div class="grid sm:grid-cols-3 gap-3 mb-4">
-        <input id="search" type="text" placeholder="Pesquisar..." class="col-span-2 p-2 border rounded" />
+      <div class="flex flex-wrap gap-2 mb-4">
+        <input id="search" type="text" placeholder="Pesquisar..." class="flex-1 p-2 border rounded" />
         <select id="filterCategoria" class="p-2 border rounded">
           <option value="">Todas categorias</option>
           <option>Carteira</option>
@@ -78,18 +99,18 @@
           <option>Chaves</option>
           <option>Outros</option>
         </select>
+        <select id="filterTipo" class="p-2 border rounded">
+          <option value="">Todos os tipos</option>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+        </select>
       </div>
-      <select id="filterTipo" class="mb-4 p-2 border rounded">
-        <option value="">Todos os tipos</option>
-        <option value="perdido">Perdido</option>
-        <option value="encontrado">Encontrado</option>
-      </select>
 
-      <div id="lista" class="grid gap-4"></div>
+      <div id="lista" class="space-y-6"></div>
     </section>
   </main>
 
-  <footer class="bg-blue-600 text-white p-4 text-center">
+  <footer class="navy text-white p-4 text-center">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
@@ -149,7 +170,7 @@
         if (!it.titulo || it.resolvido) return;
 
         const card = document.createElement("div");
-        card.className = "p-4 border rounded-lg shadow flex gap-4 items-start bg-white hover:shadow-lg transition";
+        card.className = "bg-gray-50 border rounded-lg shadow hover:shadow-lg transition overflow-hidden";
 
         let badge = it.tipo === "perdido" 
           ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Perdido</span>'
@@ -160,19 +181,19 @@
           : "";
 
         card.innerHTML = `
-          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-28 h-28 object-cover rounded-lg shadow" loading="lazy"/>` : ""}
-          <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <h3 class="text-lg font-semibold">${it.titulo}</h3>
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full h-60 object-cover" loading="lazy"/>` : ""}
+          <div class="p-4">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-lg font-semibold navy-text">${it.titulo}</h3>
               ${badge} ${destaque}
             </div>
             <p class="text-sm text-gray-500">${it.categoria}</p>
-            <p class="mt-1">${it.descricao || ""}</p>
+            <p class="mt-2">${it.descricao || ""}</p>
             <p class="mt-2 text-sm text-gray-600">Contacto: ${mascararNumero(it.contacto)}</p>
             <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
               target="_blank"
-              class="inline-flex items-center gap-1 mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm">
-              <i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp
+              class="inline-flex items-center gap-2 mt-3 navy-btn text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
+              <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
             </a>
           </div>
         `;
