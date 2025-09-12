@@ -152,6 +152,9 @@
 
       form.reset();
       carregarItens();
+
+      // rolar até ao feed
+      document.getElementById("feed").scrollIntoView({ behavior: "smooth" });
     });
 
     // Carregar lista
