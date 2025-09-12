@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
   <header class="bg-blue-600 text-white p-4 shadow">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <h1 class="text-xl font-bold">Achados & Perdidos Angola</h1>
@@ -19,8 +21,8 @@
   </header>
 
   <main class="flex-1 max-w-4xl mx-auto w-full p-4">
-    <div id="notice" class="hidden mb-4 p-3 rounded"></div>
 
+    <!-- Publicar -->
     <section id="publicar" class="mb-8 bg-white p-6 rounded shadow">
       <h2 class="text-2xl font-semibold mb-3">Publicar item perdido / encontrado</h2>
       <form id="form-publicar" class="space-y-4">
@@ -28,6 +30,15 @@
           <option value="encontrado">Encontrado</option>
           <option value="perdido">Perdido</option>
         </select>
+
+        <select id="categoria" class="w-full p-2 border rounded">
+          <option value="Carteira">Carteira</option>
+          <option value="Telemóvel">Telemóvel</option>
+          <option value="Documentos">Documentos</option>
+          <option value="Chaves">Chaves</option>
+          <option value="Outros">Outros</option>
+        </select>
+
         <input id="titulo" required type="text" placeholder="Título" class="w-full p-2 border rounded" />
         <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded"></textarea>
         <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded" />
@@ -36,9 +47,29 @@
       </form>
     </section>
 
+    <!-- Pesquisar -->
     <section id="pesquisar" class="mb-8 bg-white p-6 rounded shadow">
       <h2 class="text-2xl font-semibold mb-3">Pesquisar itens</h2>
-      <input id="search" type="text" placeholder="Pesquisar..." class="w-full p-2 border rounded mb-4" />
+
+      <!-- filtros -->
+      <div class="grid sm:grid-cols-3 gap-3 mb-4">
+        <input id="search" type="text" placeholder="Pesquisar..." class="col-span-2 p-2 border rounded" />
+        <select id="filterCategoria" class="p-2 border rounded">
+          <option value="">Todas categorias</option>
+          <option>Carteira</option>
+          <option>Telemóvel</option>
+          <option>Documentos</option>
+          <option>Chaves</option>
+          <option>Outros</option>
+        </select>
+      </div>
+
+      <select id="filterTipo" class="mb-4 p-2 border rounded">
+        <option value="">Todos os tipos</option>
+        <option value="perdido">Perdido</option>
+        <option value="encontrado">Encontrado</option>
+      </select>
+
       <div id="lista" class="grid gap-4"></div>
     </section>
   </main>
@@ -47,6 +78,7 @@
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
+  <!-- Firebase + lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } 
@@ -62,10 +94,14 @@
     const form = document.getElementById("form-publicar");
     const lista = document.getElementById("lista");
     const search = document.getElementById("search");
+    const filterCategoria = document.getElementById("filterCategoria");
+    const filterTipo = document.getElementById("filterTipo");
 
+    // publicar item
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const tipo = document.getElementById("tipo").value;
+      const categoria = document.getElementById("categoria").value;
       const titulo = document.getElementById("titulo").value;
       const descricao = document.getElementById("descricao").value;
       const contacto = document.getElementById("contacto").value;
@@ -79,43 +115,82 @@
       }
 
       await addDoc(collection(db, "items"), {
-        tipo, titulo, descricao, contacto,
-        fotoURL, created_at: serverTimestamp()
+        tipo, categoria, titulo, descricao, contacto,
+        fotoURL, destaque: false, resolvido: false,
+        created_at: serverTimestamp()
       });
 
       form.reset();
       carregarItens();
     });
 
+    // carregar lista
     async function carregarItens() {
       lista.innerHTML = "A carregar...";
       const q = query(collection(db, "items"), orderBy("created_at", "desc"));
       const snap = await getDocs(q);
       lista.innerHTML = "";
+
       snap.forEach(doc => {
         const it = doc.data();
-        if (!it.titulo) return;
+        if (!it.titulo || it.resolvido) return; // não mostrar resolvidos
         const card = document.createElement("div");
         card.className = "p-4 border rounded bg-white";
+
+        // título + destaque
+        let titulo = `<h3 class="font-bold">${it.titulo} (${it.tipo})</h3>`;
+        if (it.destaque) {
+          titulo = `<h3 class="font-bold text-yellow-600">⭐ ${it.titulo} (${it.tipo})</h3>`;
+        }
+
         card.innerHTML = `
-          <h3 class="font-bold">${it.titulo} (${it.tipo})</h3>
+          ${titulo}
+          <p class="text-sm text-gray-600">${it.categoria}</p>
           <p>${it.descricao || ""}</p>
-          ${it.fotoURL ? `<img src="${it.fotoURL}" class="mt-2 w-40" />` : ""}
-          <p class="mt-2 text-sm text-gray-600">Contacto: <a href="https://wa.me/${it.contacto}" target="_blank">${it.contacto}</a></p>
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="mt-2 w-40 rounded shadow" loading="lazy"/>` : ""}
+          <p class="mt-2 text-sm text-gray-600">
+            Contacto: <span>${mascararNumero(it.contacto)}</span>
+          </p>
+          <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
+             target="_blank" 
+             class="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded">
+             Falar no WhatsApp
+          </a>
         `;
         lista.appendChild(card);
       });
     }
 
-    search.addEventListener("input", () => {
+    // filtro de pesquisa
+    function aplicarFiltros() {
       const termo = search.value.toLowerCase();
+      const categoria = filterCategoria.value;
+      const tipo = filterTipo.value;
+
       Array.from(lista.children).forEach(card => {
-        card.style.display = card.innerText.toLowerCase().includes(termo) ? "" : "none";
+        const texto = card.innerText.toLowerCase();
+        let mostrar = true;
+        if (termo && !texto.includes(termo)) mostrar = false;
+        if (categoria && !texto.includes(categoria.toLowerCase())) mostrar = false;
+        if (tipo && !texto.includes(tipo.toLowerCase())) mostrar = false;
+        card.style.display = mostrar ? "" : "none";
       });
-    });
+    }
+
+    search.addEventListener("input", aplicarFiltros);
+    filterCategoria.addEventListener("change", aplicarFiltros);
+    filterTipo.addEventListener("change", aplicarFiltros);
+
+    // mascarar contacto
+    function mascararNumero(num) {
+      if (!num) return "";
+      const n = num.toString();
+      return n.slice(0, n.length - 4).replace(/[0-9]/g, "*") + n.slice(-4);
+    }
 
     document.getElementById("ano").textContent = new Date().getFullYear();
     carregarItens();
   </script>
 </body>
 </html>
+
