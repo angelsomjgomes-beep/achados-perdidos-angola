@@ -10,7 +10,8 @@
   <style>
     body { font-family: 'Inter', sans-serif; }
     .navy { background-color: #0a192f; }
-    .dark body { background-color: #0a192f; color: #e5e7eb; }
+    .navy-btn { background-color: #0a192f; }
+    .navy-btn:hover { background-color: #112240; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col transition-colors duration-300">
@@ -23,31 +24,27 @@
         Achados & Perdidos Angola
       </h1>
       <div class="flex items-center gap-4">
-        <button id="toggle-dark" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200 transition">🌙 Dark</button>
-        <nav class="space-x-4 text-sm hidden sm:block">
-          <a href="#publicar" class="hover:underline">📤 Publicar</a>
-          <a href="#feed" class="hover:underline">📰 Feed</a>
-          <a href="admin.html" class="hover:underline">⚙️ Admin</a>
-        </nav>
+        <button id="btn-login" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200 transition">🔑 Entrar</button>
+        <a href="admin.html" class="hover:underline">⚙️ Admin</a>
       </div>
     </div>
   </header>
 
   <main class="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
 
-    <!-- Publicar -->
-    <section id="publicar" class="bg-white dark:bg-gray-800 dark:text-gray-200 p-6 rounded-xl shadow-lg">
-      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text dark:text-blue-400">
+    <!-- Publicar (só aparece logado) -->
+    <section id="publicar" class="bg-white p-6 rounded-xl shadow-lg hidden">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text">
         <i data-lucide="plus-circle" class="w-6 h-6"></i>
         Publicar item perdido / encontrado
       </h2>
       <form id="form-publicar" class="space-y-4">
         <div class="grid sm:grid-cols-2 gap-3">
-          <select id="tipo" class="p-2 border rounded dark:bg-gray-700">
+          <select id="tipo" class="p-2 border rounded">
             <option value="encontrado">Encontrado</option>
             <option value="perdido">Perdido</option>
           </select>
-          <select id="categoria" class="p-2 border rounded dark:bg-gray-700">
+          <select id="categoria" class="p-2 border rounded">
             <option value="Carteira">Carteira</option>
             <option value="Telemóvel">Telemóvel</option>
             <option value="Documentos">Documentos</option>
@@ -55,25 +52,23 @@
             <option value="Outros">Outros</option>
           </select>
         </div>
-        <input id="titulo" required type="text" placeholder="Título" class="w-full p-2 border rounded dark:bg-gray-700" />
-        <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded dark:bg-gray-700"></textarea>
-        <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded dark:bg-gray-700" />
-        <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)" class="w-full p-2 border rounded dark:bg-gray-700" />
-        <button type="submit" class="navy text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2">
+        <input id="titulo" required type="text" placeholder="Título" class="w-full p-2 border rounded" />
+        <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded"></textarea>
+        <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded" />
+        <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)" class="w-full p-2 border rounded" />
+        <button type="submit" class="navy-btn text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <i data-lucide="send" class="w-5 h-5"></i> Publicar
         </button>
       </form>
     </section>
 
     <!-- Feed -->
-    <section id="feed" class="bg-white dark:bg-gray-800 dark:text-gray-200 p-6 rounded-xl shadow-lg">
-      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text dark:text-blue-400">
+    <section id="feed" class="bg-white p-6 rounded-xl shadow-lg">
+      <h2 class="text-2xl font-semibold mb-4 flex items-center gap-2 navy-text">
         <i data-lucide="newspaper" class="w-6 h-6"></i>
         Feed de itens
       </h2>
-
       <div id="lista" class="space-y-6"></div>
-      <p id="loading" class="text-center text-gray-500 mt-4 hidden">🔄 A carregar mais itens...</p>
     </section>
   </main>
 
@@ -84,26 +79,55 @@
   <!-- Firebase + lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, startAfter, serverTimestamp } 
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const storage = getStorage(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
+    const formSection = document.getElementById("publicar");
     const form = document.getElementById("form-publicar");
     const lista = document.getElementById("lista");
-    const loading = document.getElementById("loading");
-    const btnDark = document.getElementById("toggle-dark");
+    const btnLogin = document.getElementById("btn-login");
 
-    let lastDoc = null;
-    let carregando = false;
+    let currentUser = null;
 
+    // Autenticação
+    btnLogin.addEventListener("click", async () => {
+      if (auth.currentUser) {
+        await signOut(auth);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        btnLogin.textContent = "🚪 Sair (" + user.displayName + ")";
+        formSection.classList.remove("hidden");
+      } else {
+        currentUser = null;
+        btnLogin.textContent = "🔑 Entrar";
+        formSection.classList.add("hidden");
+      }
+    });
+
+    // Publicar item
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!currentUser) {
+        alert("Precisas de estar logado para publicar.");
+        return;
+      }
       const tipo = document.getElementById("tipo").value;
       const categoria = document.getElementById("categoria").value;
       const titulo = document.getElementById("titulo").value;
@@ -119,82 +143,61 @@
       }
 
       await addDoc(collection(db, "items"), {
+        uid: currentUser.uid,
+        autor: currentUser.displayName,
         tipo, categoria, titulo, descricao, contacto,
         fotoURL, destaque: false, resolvido: false,
         created_at: serverTimestamp()
       });
 
       form.reset();
-      lista.innerHTML = "";
-      lastDoc = null;
       carregarItens();
     });
 
+    // Carregar lista
     async function carregarItens() {
-      if (carregando) return;
-      carregando = true;
-      loading.classList.remove("hidden");
-
-      let q = query(collection(db, "items"), orderBy("created_at", "desc"), limit(5));
-      if (lastDoc) {
-        q = query(collection(db, "items"), orderBy("created_at", "desc"), startAfter(lastDoc), limit(5));
-      }
-
+      lista.innerHTML = "A carregar...";
+      const q = query(collection(db, "items"), orderBy("created_at", "desc"));
       const snap = await getDocs(q);
-      if (!snap.empty) {
-        lastDoc = snap.docs[snap.docs.length - 1];
-        snap.forEach(doc => {
-          const it = doc.data();
-          if (!it.titulo || it.resolvido) return;
+      lista.innerHTML = "";
 
-          const card = document.createElement("div");
-          card.className = "bg-gray-50 dark:bg-gray-700 border rounded-lg shadow hover:shadow-lg transition overflow-hidden";
+      snap.forEach(doc => {
+        const it = doc.data();
+        if (!it.titulo || it.resolvido) return;
 
-          let badge = it.tipo === "perdido" 
-            ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Perdido</span>'
-            : '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Encontrado</span>';
+        const card = document.createElement("div");
+        card.className = "bg-gray-50 border rounded-lg shadow hover:shadow-lg transition overflow-hidden";
 
-          card.innerHTML = `
-            ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full h-60 object-cover" loading="lazy"/>` : ""}
-            <div class="p-4">
-              <div class="flex items-center gap-2 mb-1">
-                <h3 class="text-lg font-semibold">${it.titulo}</h3>
-                ${badge}
-              </div>
-              <p class="text-sm text-gray-500">${it.categoria}</p>
-              <p class="mt-2">${it.descricao || ""}</p>
-              <p class="mt-2 text-sm">📅 Publicado em ${new Date(it.created_at?.toDate()).toLocaleDateString("pt-PT")}</p>
-              <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
-                target="_blank"
-                class="inline-flex items-center gap-2 mt-3 navy text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
-                <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
-              </a>
+        let badge = it.tipo === "perdido" 
+          ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">Perdido</span>'
+          : '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Encontrado</span>';
+
+        card.innerHTML = `
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full h-60 object-cover" loading="lazy"/>` : ""}
+          <div class="p-4">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-lg font-semibold">${it.titulo}</h3>
+              ${badge}
             </div>
-          `;
-          lista.appendChild(card);
-        });
-      }
+            <p class="text-sm text-gray-500">${it.categoria}</p>
+            <p class="mt-2">${it.descricao || ""}</p>
+            <p class="mt-2 text-sm text-gray-600">👤 ${it.autor || "Anónimo"}</p>
+            <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
+              target="_blank"
+              class="inline-flex items-center gap-2 mt-3 navy-btn text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
+              <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
+            </a>
+          </div>
+        `;
+        lista.appendChild(card);
+      });
 
-      loading.classList.add("hidden");
-      carregando = false;
       lucide.createIcons();
     }
-
-    // Scroll infinito
-    window.addEventListener("scroll", () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-        carregarItens();
-      }
-    });
-
-    // Dark mode toggle
-    btnDark.addEventListener("click", () => {
-      document.documentElement.classList.toggle("dark");
-      btnDark.textContent = document.documentElement.classList.contains("dark") ? "☀️ Light" : "🌙 Dark";
-    });
 
     document.getElementById("ano").textContent = new Date().getFullYear();
     carregarItens();
   </script>
 </body>
 </html>
+
