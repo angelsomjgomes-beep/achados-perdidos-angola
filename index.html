@@ -98,7 +98,7 @@
   <!-- Firebase + lógica -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } 
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
@@ -130,15 +130,12 @@
       }
     });
 
-    // Login Telefone (via clique direito / toque longo no botão login)
+    // Login Telefone (clique direito / toque longo)
     btnLogin.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       document.getElementById("modal-phone").classList.remove("hidden");
-
       if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", {
-          size: "normal"
-        }, auth);
+        window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "normal" }, auth);
         window.recaptchaVerifier.render();
       }
     });
@@ -172,7 +169,7 @@
       }
     };
 
-    // Mostrar/esconder form conforme login
+    // Estado login
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -182,9 +179,10 @@
         btnLogin.textContent = "🔑 Entrar";
         formSection.classList.add("hidden");
       }
+      carregarItens();
     });
 
-    // Clicar em "Publicar item"
+    // Clicar em "Publicar"
     btnPublicar.addEventListener("click", () => {
       if (!auth.currentUser) {
         alert("⚠️ Precisas de iniciar sessão (Google ou Telemóvel) para publicar.");
@@ -194,13 +192,14 @@
       formSection.scrollIntoView({ behavior: "smooth" });
     });
 
-    // Publicar item
+    // Publicar ou Editar
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!currentUser) {
         alert("Precisas de estar logado para publicar.");
         return;
       }
+
       const tipo = document.getElementById("tipo").value;
       const categoria = document.getElementById("categoria").value;
       const titulo = document.getElementById("titulo").value;
@@ -215,13 +214,23 @@
         fotoURL = await getDownloadURL(storageRef);
       }
 
-      await addDoc(collection(db, "items"), {
-        uid: currentUser.uid,
-        autor: currentUser.displayName || currentUser.phoneNumber || "Anónimo",
-        tipo, categoria, titulo, descricao, contacto,
-        fotoURL, destaque: false, resolvido: false,
-        created_at: serverTimestamp()
-      });
+      if (form.dataset.editId) {
+        const docRef = doc(db, "items", form.dataset.editId);
+        await updateDoc(docRef, {
+          tipo, categoria, titulo, descricao, contacto,
+          ...(fotoURL && { fotoURL })
+        });
+        delete form.dataset.editId;
+        alert("Anúncio atualizado com sucesso ✅");
+      } else {
+        await addDoc(collection(db, "items"), {
+          uid: currentUser.uid,
+          autor: currentUser.displayName || currentUser.phoneNumber || "Anónimo",
+          tipo, categoria, titulo, descricao, contacto,
+          fotoURL, destaque: false, resolvido: false,
+          created_at: serverTimestamp()
+        });
+      }
 
       form.reset();
       carregarItens();
@@ -235,8 +244,8 @@
       const snap = await getDocs(q);
       lista.innerHTML = "";
 
-      snap.forEach(doc => {
-        const it = doc.data();
+      snap.forEach(docSnap => {
+        const it = docSnap.data();
         if (!it.titulo || it.resolvido) return;
 
         const card = document.createElement("div");
@@ -261,8 +270,34 @@
               class="inline-flex items-center gap-2 mt-3 navy-btn text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
               <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
             </a>
+            ${currentUser && currentUser.uid === it.uid ? `
+              <div class="mt-3 flex gap-2">
+                <button class="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 btn-editar">✏️ Editar</button>
+                <button class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 btn-apagar">🗑️ Apagar</button>
+              </div>` : ""}
           </div>
         `;
+
+        if (currentUser && currentUser.uid === it.uid) {
+          card.querySelector(".btn-editar").onclick = () => {
+            document.getElementById("tipo").value = it.tipo;
+            document.getElementById("categoria").value = it.categoria;
+            document.getElementById("titulo").value = it.titulo;
+            document.getElementById("descricao").value = it.descricao;
+            document.getElementById("contacto").value = it.contacto;
+            formSection.classList.remove("hidden");
+            formSection.scrollIntoView({ behavior: "smooth" });
+            form.dataset.editId = docSnap.id;
+          };
+
+          card.querySelector(".btn-apagar").onclick = async () => {
+            if (confirm("Tens certeza que queres apagar este anúncio?")) {
+              await deleteDoc(doc(db, "items", docSnap.id));
+              carregarItens();
+            }
+          };
+        }
+
         lista.appendChild(card);
       });
 
