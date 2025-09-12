@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Achados & Perdidos Angola</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+  <header class="bg-blue-600 text-white p-4 shadow">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <h1 class="text-xl font-bold">Achados & Perdidos Angola</h1>
+      <nav class="space-x-4">
+        <a href="#publicar" class="hover:underline">Publicar</a>
+        <a href="#pesquisar" class="hover:underline">Pesquisar</a>
+        <a href="admin.html" class="hover:underline">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-4xl mx-auto w-full p-4">
+    <div id="notice" class="hidden mb-4 p-3 rounded"></div>
+
+    <section id="publicar" class="mb-8 bg-white p-6 rounded shadow">
+      <h2 class="text-2xl font-semibold mb-3">Publicar item perdido / encontrado</h2>
+      <form id="form-publicar" class="space-y-4">
+        <select id="tipo" class="w-full p-2 border rounded">
+          <option value="encontrado">Encontrado</option>
+          <option value="perdido">Perdido</option>
+        </select>
+        <input id="titulo" required type="text" placeholder="Título" class="w-full p-2 border rounded" />
+        <textarea id="descricao" placeholder="Descrição" class="w-full p-2 border rounded"></textarea>
+        <input id="foto" type="file" accept="image/*" class="w-full p-2 border rounded" />
+        <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)" class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Publicar</button>
+      </form>
+    </section>
+
+    <section id="pesquisar" class="mb-8 bg-white p-6 rounded shadow">
+      <h2 class="text-2xl font-semibold mb-3">Pesquisar itens</h2>
+      <input id="search" type="text" placeholder="Pesquisar..." class="w-full p-2 border rounded mb-4" />
+      <div id="lista" class="grid gap-4"></div>
+    </section>
+  </main>
+
+  <footer class="bg-blue-600 text-white p-4 text-center">
+    © <span id="ano"></span> Achados & Perdidos Angola
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    const form = document.getElementById("form-publicar");
+    const lista = document.getElementById("lista");
+    const search = document.getElementById("search");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const tipo = document.getElementById("tipo").value;
+      const titulo = document.getElementById("titulo").value;
+      const descricao = document.getElementById("descricao").value;
+      const contacto = document.getElementById("contacto").value;
+      const foto = document.getElementById("foto").files[0];
+
+      let fotoURL = "";
+      if (foto) {
+        const storageRef = ref(storage, "fotos/" + Date.now() + "-" + foto.name);
+        await uploadBytes(storageRef, foto);
+        fotoURL = await getDownloadURL(storageRef);
+      }
+
+      await addDoc(collection(db, "items"), {
+        tipo, titulo, descricao, contacto,
+        fotoURL, created_at: serverTimestamp()
+      });
+
+      form.reset();
+      carregarItens();
+    });
+
+    async function carregarItens() {
+      lista.innerHTML = "A carregar...";
+      const q = query(collection(db, "items"), orderBy("created_at", "desc"));
+      const snap = await getDocs(q);
+      lista.innerHTML = "";
+      snap.forEach(doc => {
+        const it = doc.data();
+        if (!it.titulo) return;
+        const card = document.createElement("div");
+        card.className = "p-4 border rounded bg-white";
+        card.innerHTML = `
+          <h3 class="font-bold">${it.titulo} (${it.tipo})</h3>
+          <p>${it.descricao || ""}</p>
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="mt-2 w-40" />` : ""}
+          <p class="mt-2 text-sm text-gray-600">Contacto: <a href="https://wa.me/${it.contacto}" target="_blank">${it.contacto}</a></p>
+        `;
+        lista.appendChild(card);
+      });
+    }
+
+    search.addEventListener("input", () => {
+      const termo = search.value.toLowerCase();
+      Array.from(lista.children).forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(termo) ? "" : "none";
+      });
+    });
+
+    document.getElementById("ano").textContent = new Date().getFullYear();
+    carregarItens();
+  </script>
+</body>
+</html>

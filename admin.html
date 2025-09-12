@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Achados & Perdidos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <h1 class="text-2xl font-bold mb-4">Painel de Administração</h1>
+  <div id="lista"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, deleteDoc, doc } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const lista = document.getElementById("lista");
+
+    async function carregar() {
+      lista.innerHTML = "A carregar...";
+      const snap = await getDocs(collection(db, "items"));
+      lista.innerHTML = "";
+      snap.forEach(d => {
+        const it = d.data();
+        const div = document.createElement("div");
+        div.className = "p-3 border rounded mb-2 bg-white flex justify-between";
+        div.innerHTML = `
+          <div>
+            <b>${it.titulo}</b> - ${it.tipo}<br>
+            ${it.descricao || ""}
+          </div>
+          <button class="bg-red-600 text-white px-3 py-1 rounded">Apagar</button>
+        `;
+        div.querySelector("button").onclick = async () => {
+          await deleteDoc(doc(db, "items", d.id));
+          carregar();
+        };
+        lista.appendChild(div);
+      });
+    }
+
+    carregar();
+  </script>
+</body>
+</html>
