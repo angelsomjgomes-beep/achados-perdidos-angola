@@ -1,12 +1,9 @@
-// === Firebase Config ===
-// Copia daqui as tuas credenciais do Firebase
-// (console.firebase.google.com → Configurações do projeto → SDK Web)
-
-export const firebaseConfig = {
-  apiKey: "TUA_API_KEY",
-  authDomain: "TEU_PROJETO.firebaseapp.com",
-  projectId: "TEU_PROJETO",
-  storageBucket: "TEU_PROJETO.appspot.com",
-  messagingSenderId: "TEU_ID",
-  appId: "TEU_APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyDvfohKa0_vIwdMNZvr4R8t78SnAD86yAA",
+  authDomain: "achados-e-perdidos-ao.firebaseapp.com",
+  projectId: "achados-e-perdidos-ao",
+  storageBucket: "achados-e-perdidos-ao.firebasestorage.app",
+  messagingSenderId: "317544481556",
+  appId: "1:317544481556:web:9f1815001355fa2ffc7801",
+  measurementId: "G-LSG52GERXX"
 };
