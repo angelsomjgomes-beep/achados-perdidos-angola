@@ -127,13 +127,12 @@
     </button>
   </div>
 
-  <!-- Recaptcha para login com telefone -->
   <div id="recaptcha-container"></div>
 
   <!-- Firebase + Cloudinary JS -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc } 
+    import { getFirestore, collection, addDoc, query, orderBy, serverTimestamp, onSnapshot } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
@@ -158,7 +157,7 @@
     const cloudName = "dyylw9hjm"; 
     const uploadPreset = "ml_default"; 
 
-    // Dark mode
+    // Dark mode toggle
     const root = document.documentElement;
     if (localStorage.theme === "dark" || 
         (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
@@ -184,7 +183,6 @@
     const fotoInput = document.getElementById("foto");
     const previewContainer = document.getElementById("preview-container");
     const previewImg = document.getElementById("preview-img");
-
     fotoInput.addEventListener("change", () => {
       const file = fotoInput.files[0];
       if (file) {
@@ -200,7 +198,7 @@
       }
     });
 
-    // ---- LOGIN ----
+    // LOGIN
     async function loginGoogle() {
       try {
         await signInWithPopup(auth, provider);
@@ -211,10 +209,7 @@
     }
 
     function configurarRecaptcha() {
-      window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", {
-        size: "invisible",
-        callback: () => console.log("reCAPTCHA verificado")
-      }, auth);
+      window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
     }
 
     async function loginTelefone(numero) {
@@ -223,9 +218,7 @@
         const appVerifier = window.recaptchaVerifier;
         const confirmationResult = await signInWithPhoneNumber(auth, numero, appVerifier);
         const codigo = prompt("Digite o código SMS recebido:");
-        if (codigo) {
-          await confirmationResult.confirm(codigo);
-        }
+        if (codigo) await confirmationResult.confirm(codigo);
       } catch (err) {
         alert("Erro no login Telefone: " + err.message);
         console.error(err);
@@ -241,7 +234,6 @@
         btnLogin.textContent = "🔑 Entrar";
         formSection.classList.add("hidden");
       }
-      carregarItens();
     });
 
     btnLogin.addEventListener("click", async () => {
@@ -258,7 +250,7 @@
       }
     });
 
-    // ---- PUBLICAR ----
+    // PUBLICAR
     btnPublicar?.addEventListener("click", () => {
       if (!auth.currentUser) {
         alert("⚠️ Precisas de iniciar sessão para publicar.");
@@ -267,9 +259,7 @@
       formSection.classList.remove("hidden");
       formSection.scrollIntoView({ behavior: "smooth" });
     });
-    btnPublicarMobile.addEventListener("click", () => {
-      btnPublicar.click();
-    });
+    btnPublicarMobile.addEventListener("click", () => btnPublicar.click());
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -302,55 +292,55 @@
       form.reset();
       previewContainer.classList.add("hidden");
       previewImg.src = "";
-      carregarItens();
+      formSection.classList.add("hidden");
     });
 
-    // ---- FEED ----
-    async function carregarItens() {
+    // FEED em tempo real
+    function carregarItens() {
       lista.innerHTML = "A carregar...";
       const q = query(collection(db, "items"), orderBy("created_at", "desc"));
-      const snap = await getDocs(q);
-      lista.innerHTML = "";
+      onSnapshot(q, (snap) => {
+        lista.innerHTML = "";
+        const searchText = document.getElementById("search").value.toLowerCase();
+        const filterTipo = document.getElementById("filter-tipo").value;
+        const filterCategoria = document.getElementById("filter-categoria").value;
 
-      const searchText = document.getElementById("search").value.toLowerCase();
-      const filterTipo = document.getElementById("filter-tipo").value;
-      const filterCategoria = document.getElementById("filter-categoria").value;
+        snap.forEach(docSnap => {
+          const it = docSnap.data();
+          if (!it.titulo) return;
+          if (searchText && !(it.titulo.toLowerCase().includes(searchText) || (it.descricao && it.descricao.toLowerCase().includes(searchText)))) return;
+          if (filterTipo && it.tipo !== filterTipo) return;
+          if (filterCategoria && it.categoria !== filterCategoria) return;
 
-      snap.forEach(docSnap => {
-        const it = docSnap.data();
-        if (!it.titulo) return;
-        if (searchText && !(it.titulo.toLowerCase().includes(searchText) || (it.descricao && it.descricao.toLowerCase().includes(searchText)))) return;
-        if (filterTipo && it.tipo !== filterTipo) return;
-        if (filterCategoria && it.categoria !== filterCategoria) return;
+          const card = document.createElement("div");
+          card.className = "bg-gray-50 dark:bg-gray-700 border rounded-lg shadow hover:shadow-lg transition overflow-hidden";
 
-        const card = document.createElement("div");
-        card.className = "bg-gray-50 dark:bg-gray-700 border rounded-lg shadow hover:shadow-lg transition overflow-hidden";
+          let badge = it.tipo === "perdido" 
+            ? '<span class="bg-red-100 text-red-800 dark:bg-red-600 dark:text-white text-xs px-2 py-1 rounded">Perdido</span>'
+            : '<span class="bg-green-100 text-green-800 dark:bg-green-600 dark:text-white text-xs px-2 py-1 rounded">Encontrado</span>';
 
-        let badge = it.tipo === "perdido" 
-          ? '<span class="bg-red-100 text-red-800 dark:bg-red-600 dark:text-white text-xs px-2 py-1 rounded">Perdido</span>'
-          : '<span class="bg-green-100 text-green-800 dark:bg-green-600 dark:text-white text-xs px-2 py-1 rounded">Encontrado</span>';
-
-        card.innerHTML = `
-          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full aspect-video object-cover" loading="lazy"/>` : ""}
-          <div class="p-4">
-            <div class="flex items-center gap-2 mb-1">
-              <h3 class="text-lg font-semibold">${it.titulo}</h3>
-              ${badge}
+          card.innerHTML = `
+            ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full aspect-video object-cover" loading="lazy"/>` : ""}
+            <div class="p-4">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-lg font-semibold">${it.titulo}</h3>
+                ${badge}
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-300">${it.categoria}</p>
+              <p class="mt-2">${it.descricao || ""}</p>
+              <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">👤 ${it.autor || "Anónimo"}</p>
+              <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
+                target="_blank"
+                class="inline-flex items-center gap-2 mt-3 navy-btn text-white w-full sm:w-auto px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
+                <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
+              </a>
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-300">${it.categoria}</p>
-            <p class="mt-2">${it.descricao || ""}</p>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">👤 ${it.autor || "Anónimo"}</p>
-            <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
-              target="_blank"
-              class="inline-flex items-center gap-2 mt-3 navy-btn text-white w-full sm:w-auto px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
-              <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
-            </a>
-          </div>
-        `;
-        lista.appendChild(card);
-      });
+          `;
+          lista.appendChild(card);
+        });
 
-      lucide.createIcons();
+        lucide.createIcons();
+      });
     }
 
     document.getElementById("search").addEventListener("input", carregarItens);
@@ -362,3 +352,4 @@
   </script>
 </body>
 </html>
+
