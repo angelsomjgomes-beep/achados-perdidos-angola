@@ -35,6 +35,7 @@
     </div>
   </header>
 
+  <!-- Conteúdo -->
   <main class="flex-1 max-w-3xl mx-auto w-full p-6">
     <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300 mb-6">Publicar Item</h1>
 
@@ -62,10 +63,12 @@
     </form>
   </main>
 
+  <!-- Rodapé -->
   <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
+  <!-- Firebase + SweetAlert2 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
@@ -77,17 +80,17 @@
     const auth = getAuth(app);
 
     const form = document.getElementById("form-publicar");
-    const cloudName = "dyylw9hjm";
+    const cloudName = "dyylw9hjm"; // ✅ teu Cloudinary
     const uploadPreset = "ml_default";
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         Swal.fire({
-          icon: 'warning',
-          title: 'Sessão necessária',
-          text: 'Precisas de iniciar sessão antes de publicar um item.',
-          confirmButtonText: 'Fazer login'
-        }).then(() => window.location.href = "index.html");
+          icon: "warning",
+          title: "Sessão necessária",
+          text: "Precisas de iniciar sessão antes de publicar um item.",
+          confirmButtonText: "Fazer login"
+        }).then(() => (window.location.href = "index.html"));
       }
     });
 
@@ -104,48 +107,55 @@
       const foto = document.getElementById("foto").files[0];
 
       if (!foto) {
-        Swal.fire('⚠️', 'Seleciona uma imagem antes de publicar.', 'warning');
+        Swal.fire("⚠️", "Seleciona uma imagem antes de publicar.", "warning");
         return;
       }
 
-      Swal.fire({ title: 'A publicar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({
+        title: "A publicar...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
 
       try {
-        // Upload da imagem
+        // Upload da imagem para Cloudinary
         const formData = new FormData();
         formData.append("file", foto);
         formData.append("upload_preset", uploadPreset);
 
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
           method: "POST",
           body: formData
         });
-        const data = await res.json();
 
-        // Enviar dados para o Firestore
+        if (!uploadResponse.ok) throw new Error("Erro ao enviar imagem para Cloudinary");
+
+        const uploadData = await uploadResponse.json();
+
+        // Guardar dados no Firestore
         await addDoc(collection(db, "items"), {
           uid: user.uid,
           titulo,
           descricao,
           tipo,
           categoria,
-          fotoURL: data.secure_url,
-          created_at: serverTimestamp(),
+          fotoURL: uploadData.secure_url,
+          created_at: serverTimestamp()
         });
 
         Swal.fire({
-          icon: 'success',
-          title: 'Publicado com sucesso!',
-          text: 'O item foi adicionado ao feed.',
+          icon: "success",
+          title: "Publicado com sucesso!",
+          text: "O item foi adicionado ao feed.",
           showConfirmButton: false,
           timer: 1800
         });
 
         form.reset();
-        setTimeout(() => window.location.href = "feed.html", 2000);
-      } catch (error) {
-        Swal.fire('❌ Erro', 'Ocorreu um erro ao publicar o item.', 'error');
-        console.error(error);
+        setTimeout(() => (window.location.href = "feed.html"), 2000);
+      } catch (err) {
+        console.error(err);
+        Swal.fire("❌ Erro", "Ocorreu um problema ao publicar o item.", "error");
       }
     });
 
@@ -154,4 +164,3 @@
   </script>
 </body>
 </html>
-
