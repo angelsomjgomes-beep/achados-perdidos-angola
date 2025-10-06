@@ -24,75 +24,46 @@
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
         <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
-      <nav class="hidden sm:flex items-center gap-6 text-sm font-medium">
+      <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="index.html" class="hover:underline">🏠 Início</a>
         <a href="feed.html" class="underline font-semibold">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
         <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
+        <button id="login-btn" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200 transition">🔑 Login</button>
+        <div id="user-info" class="hidden flex items-center gap-2">
+          <img id="user-photo" class="w-8 h-8 rounded-full border border-gray-400" />
+          <span id="user-name" class="text-sm"></span>
+          <button id="logout-btn" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded">Sair</button>
+        </div>
       </nav>
     </div>
   </header>
 
   <!-- Conteúdo -->
-  <main class="flex-1 max-w-6xl mx-auto w-full p-6 grid md:grid-cols-3 gap-6">
-
-    <!-- 🧍 Painel lateral de login -->
-    <aside class="md:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 h-fit">
-      <h2 class="text-lg font-semibold mb-4 text-blue-900 dark:text-blue-300 flex items-center gap-2">
-        <i data-lucide="user" class="w-5 h-5"></i> Conta
-      </h2>
-
-      <div id="user-info" class="hidden space-y-3 text-center">
-        <img id="user-photo" class="w-20 h-20 rounded-full mx-auto border border-gray-300 dark:border-gray-600">
-        <p id="user-name" class="font-semibold"></p>
-        <button id="logout-btn"
-          class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded w-full">
-          🚪 Terminar Sessão
-        </button>
+  <main class="flex-1 max-w-5xl mx-auto w-full p-6 space-y-8">
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg space-y-3">
+      <h1 class="text-2xl font-bold text-blue-900 dark:text-blue-300 text-center">Feed de Itens</h1>
+      <input id="search" type="text" placeholder="🔍 Procurar por título ou descrição..." 
+        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
+      <div class="grid sm:grid-cols-2 gap-3">
+        <select id="filter-tipo" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
+          <option value="">Todos os tipos</option>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+        </select>
+        <select id="filter-categoria" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
+          <option value="">Todas as categorias</option>
+          <option value="Carteira">Carteira</option>
+          <option value="Telemóvel">Telemóvel</option>
+          <option value="Documentos">Documentos</option>
+          <option value="Chaves">Chaves</option>
+          <option value="Outros">Outros</option>
+        </select>
       </div>
+    </div>
 
-      <div id="login-section" class="space-y-3">
-        <button id="login-google"
-          class="bg-white text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center gap-2 w-full justify-center">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
-          Entrar com Google
-        </button>
-
-        <button id="login-phone"
-          class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition flex items-center gap-2 w-full justify-center">
-          <i data-lucide="phone" class="w-5 h-5"></i>
-          Entrar com Telefone
-        </button>
-      </div>
-    </aside>
-
-    <!-- 📰 Feed principal -->
-    <section class="md:col-span-2 space-y-8">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg space-y-3">
-        <h1 class="text-2xl font-bold text-blue-900 dark:text-blue-300 text-center">Feed de Itens</h1>
-        <input id="search" type="text" placeholder="🔍 Procurar por título ou descrição..." 
-          class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
-        <div class="grid sm:grid-cols-2 gap-3">
-          <select id="filter-tipo" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
-            <option value="">Todos os tipos</option>
-            <option value="perdido">Perdido</option>
-            <option value="encontrado">Encontrado</option>
-          </select>
-          <select id="filter-categoria" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
-            <option value="">Todas as categorias</option>
-            <option value="Carteira">Carteira</option>
-            <option value="Telemóvel">Telemóvel</option>
-            <option value="Documentos">Documentos</option>
-            <option value="Chaves">Chaves</option>
-            <option value="Outros">Outros</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Lista -->
-      <div id="lista" class="space-y-6"></div>
-    </section>
-
+    <!-- Lista -->
+    <div id="lista" class="space-y-6"></div>
   </main>
 
   <!-- Rodapé -->
@@ -100,16 +71,33 @@
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <!-- Recaptcha -->
+  <!-- Modal de Login -->
+  <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 p-6 space-y-4 text-center">
+      <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-300">Iniciar Sessão</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Escolhe uma opção de login</p>
+      <button id="login-google"
+        class="bg-white text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center gap-2 w-full justify-center">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
+        Entrar com Google
+      </button>
+      <button id="login-phone"
+        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition flex items-center gap-2 w-full justify-center">
+        <i data-lucide="phone" class="w-5 h-5"></i> Entrar com Telefone
+      </button>
+      <button id="close-modal" class="mt-2 text-sm text-gray-400 hover:underline">Cancelar</button>
+    </div>
+  </div>
+
   <div id="recaptcha-container"></div>
 
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged }
-      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { getFirestore, collection, query, orderBy, onSnapshot } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged }
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
     const app = initializeApp(firebaseConfig);
@@ -118,26 +106,30 @@
     const provider = new GoogleAuthProvider();
 
     const lista = document.getElementById("lista");
+    const loginBtn = document.getElementById("login-btn");
+    const loginModal = document.getElementById("login-modal");
+    const closeModal = document.getElementById("close-modal");
+    const loginGoogle = document.getElementById("login-google");
+    const loginPhone = document.getElementById("login-phone");
     const userInfo = document.getElementById("user-info");
     const userName = document.getElementById("user-name");
     const userPhoto = document.getElementById("user-photo");
-    const loginSection = document.getElementById("login-section");
     const logoutBtn = document.getElementById("logout-btn");
-
-    const loginGoogle = document.getElementById("login-google");
-    const loginPhone = document.getElementById("login-phone");
 
     function configurarRecaptcha() {
       window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
     }
 
-    // Login com Google
+    loginBtn.addEventListener("click", () => loginModal.classList.remove("hidden"));
+    closeModal.addEventListener("click", () => loginModal.classList.add("hidden"));
+
     loginGoogle.addEventListener("click", async () => {
-      try { await signInWithPopup(auth, provider); }
-      catch (err) { alert("Erro no login Google: " + err.message); }
+      try { 
+        await signInWithPopup(auth, provider);
+        loginModal.classList.add("hidden");
+      } catch (err) { alert("Erro no login Google: " + err.message); }
     });
 
-    // Login com Telefone
     loginPhone.addEventListener("click", async () => {
       const numero = prompt("📱 Digite o seu número (ex: +244911111111):");
       if (!numero) return;
@@ -147,26 +139,23 @@
         const confirmationResult = await signInWithPhoneNumber(auth, numero, appVerifier);
         const codigo = prompt("Digite o código SMS recebido:");
         if (codigo) await confirmationResult.confirm(codigo);
+        loginModal.classList.add("hidden");
       } catch (err) {
         alert("Erro no login Telefone: " + err.message);
       }
     });
 
-    // Logout
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-    });
+    logoutBtn.addEventListener("click", async () => await signOut(auth));
 
-    // Estado da sessão
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        loginBtn.classList.add("hidden");
         userInfo.classList.remove("hidden");
-        loginSection.classList.add("hidden");
         userName.textContent = user.displayName || user.phoneNumber || "Utilizador";
-        userPhoto.src = user.photoURL || "https://via.placeholder.com/100x100.png?text=User";
+        userPhoto.src = user.photoURL || "https://via.placeholder.com/100.png?text=User";
       } else {
+        loginBtn.classList.remove("hidden");
         userInfo.classList.add("hidden");
-        loginSection.classList.remove("hidden");
       }
     });
 
@@ -174,20 +163,10 @@
     function carregarItens() {
       lista.innerHTML = "<p class='text-center text-gray-500'>A carregar...</p>";
       const q = query(collection(db, "items"), orderBy("created_at", "desc"));
-
       onSnapshot(q, (snap) => {
         lista.innerHTML = "";
-        const searchText = document.getElementById("search").value.toLowerCase();
-        const filterTipo = document.getElementById("filter-tipo").value;
-        const filterCategoria = document.getElementById("filter-categoria").value;
-
         snap.forEach(docSnap => {
           const it = docSnap.data();
-          if (!it.titulo) return;
-          if (searchText && !(it.titulo.toLowerCase().includes(searchText) || (it.descricao && it.descricao.toLowerCase().includes(searchText)))) return;
-          if (filterTipo && it.tipo !== filterTipo) return;
-          if (filterCategoria && it.categoria !== filterCategoria) return;
-
           const badge = it.tipo === "perdido"
             ? '<span class="bg-red-100 text-red-800 dark:bg-red-600 dark:text-white text-xs px-2 py-1 rounded">Perdido</span>'
             : '<span class="bg-green-100 text-green-800 dark:bg-green-600 dark:text-white text-xs px-2 py-1 rounded">Encontrado</span>';
@@ -215,10 +194,6 @@
         lucide.createIcons();
       });
     }
-
-    document.getElementById("search").addEventListener("input", carregarItens);
-    document.getElementById("filter-tipo").addEventListener("change", carregarItens);
-    document.getElementById("filter-categoria").addEventListener("change", carregarItens);
 
     document.getElementById("ano").textContent = new Date().getFullYear();
     carregarItens();
