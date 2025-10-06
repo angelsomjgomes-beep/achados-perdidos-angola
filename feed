@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Feed — Achados & Perdidos Angola</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .navy { background-color: #0a192f; }
+    .navy-btn { background-color: #0a192f; }
+    .navy-btn:hover { background-color: #112240; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
+
+  <!-- Header -->
+  <header class="navy text-white p-4 shadow dark:bg-gray-800">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="text-2xl font-bold flex items-center gap-2">
+        <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
+      </a>
+
+      <nav class="hidden sm:flex items-center gap-6 text-sm font-medium">
+        <a href="index.html" class="hover:underline">🏠 Início</a>
+        <a href="feed.html" class="underline font-semibold">📰 Feed</a>
+        <a href="publicar.html" class="hover:underline">➕ Publicar</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Feed principal -->
+  <main class="flex-1 max-w-3xl mx-auto w-full p-6 space-y-8">
+    <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300">Feed de Itens</h1>
+
+    <!-- Pesquisa e filtros -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg space-y-3">
+      <input id="search" type="text" placeholder="🔍 Procurar por título ou descrição..." 
+        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
+
+      <div class="grid sm:grid-cols-2 gap-3">
+        <select id="filter-tipo" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
+          <option value="">Todos os tipos</option>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+        </select>
+
+        <select id="filter-categoria" class="p-3 border rounded dark:bg-gray-700 dark:border-gray-600">
+          <option value="">Todas as categorias</option>
+          <option value="Carteira">Carteira</option>
+          <option value="Telemóvel">Telemóvel</option>
+          <option value="Documentos">Documentos</option>
+          <option value="Chaves">Chaves</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <section id="lista" class="space-y-6"></section>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="navy text-white p-4 text-center dark:bg-gray-800">
+    © <span id="ano"></span> Achados & Perdidos Angola
+  </footer>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot } 
+      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const lista = document.getElementById("lista");
+
+    function carregarItens() {
+      lista.innerHTML = "<p class='text-center text-gray-500'>A carregar...</p>";
+      const q = query(collection(db, "items"), orderBy("created_at", "desc"));
+
+      onSnapshot(q, (snap) => {
+        lista.innerHTML = "";
+        const searchText = document.getElementById("search").value.toLowerCase();
+        const filterTipo = document.getElementById("filter-tipo").value;
+        const filterCategoria = document.getElementById("filter-categoria").value;
+
+        snap.forEach(docSnap => {
+          const it = docSnap.data();
+          if (!it.titulo) return;
+          if (searchText && !(it.titulo.toLowerCase().includes(searchText) || (it.descricao && it.descricao.toLowerCase().includes(searchText)))) return;
+          if (filterTipo && it.tipo !== filterTipo) return;
+          if (filterCategoria && it.categoria !== filterCategoria) return;
+
+          const card = document.createElement("div");
+          card.className = "bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow hover:shadow-lg transition overflow-hidden";
+
+          const badge = it.tipo === "perdido"
+            ? '<span class="bg-red-100 text-red-800 dark:bg-red-600 dark:text-white text-xs px-2 py-1 rounded">Perdido</span>'
+            : '<span class="bg-green-100 text-green-800 dark:bg-green-600 dark:text-white text-xs px-2 py-1 rounded">Encontrado</span>';
+
+          card.innerHTML = `
+            ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full aspect-video object-cover" loading="lazy" />` : ""}
+            <div class="p-4">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-lg font-semibold">${it.titulo}</h3>
+                ${badge}
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">${it.categoria}</p>
+              <p class="mt-2">${it.descricao || ""}</p>
+              <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">👤 ${it.autor || "Anónimo"}</p>
+              <a href="https://wa.me/${it.contacto}?text=Olá,%20vi%20seu%20anúncio%20'${encodeURIComponent(it.titulo)}'%20no%20Achados%20&%20Perdidos%20Angola" 
+                 target="_blank"
+                 class="inline-flex items-center gap-2 mt-3 navy-btn text-white w-full sm:w-auto px-4 py-2 rounded-lg hover:bg-blue-800 transition text-sm">
+                 <i data-lucide="message-circle" class="w-5 h-5"></i> Falar no WhatsApp
+              </a>
+            </div>
+          `;
+          lista.appendChild(card);
+        });
+        lucide.createIcons();
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", carregarItens);
+    document.getElementById("filter-tipo").addEventListener("change", carregarItens);
+    document.getElementById("filter-categoria").addEventListener("change", carregarItens);
+
+    document.getElementById("ano").textContent = new Date().getFullYear();
+    carregarItens();
+  </script>
+</body>
+</html>
