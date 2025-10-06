@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Achados & Perdidos Angola</title>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="alternate icon" href="/favicon-32.png">
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -18,71 +14,58 @@
     .navy { background-color: #0a192f; }
     .navy-btn { background-color: #0a192f; }
     .navy-btn:hover { background-color: #112240; }
-    .mobile-menu {
-      transform: translateX(100%);
-      transition: transform 0.3s ease-in-out;
-    }
-    .mobile-menu.active {
-      transform: translateX(0);
-    }
   </style>
 </head>
-
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
 
   <!-- Header -->
   <header class="navy text-white p-4 shadow dark:bg-gray-800">
-    <div class="max-w-5xl mx-auto flex items-center justify-between">
-      
-      <!-- Logo -->
-      <a href="index.html" class="flex items-center gap-3">
-        <img src="/logo.svg" alt="Achados & Perdidos Angola" class="w-36 h-auto">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
+        <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
-
-      <!-- Desktop Nav -->
-      <nav class="hidden sm:flex items-center gap-6 text-sm font-medium">
+      <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="index.html" class="underline font-semibold">🏠 Início</a>
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
         <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
-      </nav>
 
-      <!-- Botão Menu Mobile -->
-      <button id="menu-btn" class="sm:hidden focus:outline-none">
-        <i data-lucide="menu" class="w-7 h-7"></i>
-      </button>
+        <button id="login-btn" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200 transition">🔑 Login</button>
+
+        <div id="user-info" class="hidden flex items-center gap-2">
+          <img id="user-photo" class="w-8 h-8 rounded-full border border-gray-400" />
+          <span id="user-name" class="text-sm"></span>
+          <button id="logout-btn" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded">Sair</button>
+        </div>
+      </nav>
     </div>
   </header>
 
-  <!-- Menu Mobile -->
-  <div id="mobile-menu" class="mobile-menu fixed top-0 right-0 w-64 h-full bg-[#0a192f] text-white shadow-lg z-50 p-6 flex flex-col space-y-6 sm:hidden">
-    <button id="close-menu" class="self-end mb-4">
-      <i data-lucide="x" class="w-7 h-7"></i>
-    </button>
-    <a href="index.html" class="hover:underline">🏠 Início</a>
-    <a href="feed.html" class="hover:underline">📰 Feed</a>
-    <a href="publicar.html" class="hover:underline">➕ Publicar</a>
-    <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
-    <hr class="border-gray-600" />
-    <div id="login-section-mobile" class="flex flex-col gap-2">
-      <button id="btn-login-google-mobile" class="bg-white text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center gap-2">
+  <!-- Modal de Login -->
+  <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 p-6 space-y-4 text-center">
+      <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-300">Iniciar Sessão</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Escolhe uma opção de login</p>
+      <button id="login-google"
+        class="bg-white text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center gap-2 w-full justify-center">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
-        Google
+        Entrar com Google
       </button>
-      <button id="btn-login-phone-mobile" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition flex items-center gap-2">
-        <i data-lucide="phone" class="w-5 h-5"></i> Telefone
+      <button id="login-phone"
+        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition flex items-center gap-2 w-full justify-center">
+        <i data-lucide="phone" class="w-5 h-5"></i> Entrar com Telefone
       </button>
-      <button id="btn-logout-mobile" class="hidden bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition">
-        🚪 Sair
-      </button>
+      <button id="close-modal" class="mt-2 text-sm text-gray-400 hover:underline">Cancelar</button>
     </div>
   </div>
 
-  <!-- Conteúdo -->
+  <div id="recaptcha-container"></div>
+
+  <!-- Conteúdo Principal -->
   <main class="flex-1 max-w-3xl mx-auto w-full p-8 text-center space-y-8">
     <h1 class="text-4xl font-bold text-blue-900 dark:text-blue-300">Bem-vindo ao Achados & Perdidos Angola</h1>
     <p class="text-lg text-gray-600 dark:text-gray-300">
-      Uma plataforma simples e rápida para conectar pessoas que <strong>perderam</strong> e <strong>encontraram</strong> objetos.
+      Conectamos pessoas que <strong>perderam</strong> e <strong>encontraram</strong> objetos em todo o país.
     </p>
 
     <div class="grid sm:grid-cols-2 gap-6 mt-8">
@@ -103,50 +86,11 @@
   </main>
 
   <!-- Rodapé -->
-  <footer class="navy text-white mt-auto p-8 dark:bg-gray-800">
-    <div class="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8 text-center sm:text-left">
-      <div>
-        <h3 class="text-lg font-semibold mb-3">Achados & Perdidos</h3>
-        <p class="text-sm text-gray-300 leading-relaxed">
-          Plataforma gratuita para ajudar a encontrar e devolver objetos perdidos em Angola.  
-          Simples, solidária e segura.
-        </p>
-      </div>
-      <div>
-        <h3 class="text-lg font-semibold mb-3">Links Rápidos</h3>
-        <ul class="space-y-2 text-sm">
-          <li><a href="index.html" class="hover:underline">🏠 Início</a></li>
-          <li><a href="feed.html" class="hover:underline">📰 Feed</a></li>
-          <li><a href="publicar.html" class="hover:underline">➕ Publicar</a></li>
-          <li><a href="sobre.html" class="hover:underline">ℹ️ Sobre</a></li>
-        </ul>
-      </div>
-      <div>
-        <h3 class="text-lg font-semibold mb-3">Contacto</h3>
-        <ul class="space-y-2 text-sm">
-          <li class="flex items-center gap-2 justify-center sm:justify-start">
-            <i data-lucide="mail" class="w-4 h-4"></i>
-            <a href="mailto:achadosangola@gmail.com" class="hover:underline">achadosangola@gmail.com</a>
-          </li>
-          <li class="flex items-center gap-2 justify-center sm:justify-start">
-            <i data-lucide="phone" class="w-4 h-4"></i>
-            <a href="https://wa.me/244911111111" target="_blank" class="hover:underline">+244 911 111 111</a>
-          </li>
-          <li class="flex items-center gap-2 justify-center sm:justify-start">
-            <i data-lucide="instagram" class="w-4 h-4"></i>
-            <a href="https://instagram.com/achadosangola" target="_blank" class="hover:underline">@achadosangola</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-    <div class="text-center mt-8 text-sm text-gray-400 border-t border-gray-600 pt-4">
-      © <span id="ano"></span> Achados & Perdidos Angola — Todos os direitos reservados.
-    </div>
+  <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
+    © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <div id="recaptcha-container"></div>
-
-  <!-- Firebase -->
+  <!-- Firebase Login Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged } 
@@ -157,30 +101,34 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // Menu mobile
-    const menuBtn = document.getElementById("menu-btn");
-    const mobileMenu = document.getElementById("mobile-menu");
-    const closeMenu = document.getElementById("close-menu");
-
-    menuBtn.addEventListener("click", () => mobileMenu.classList.add("active"));
-    closeMenu.addEventListener("click", () => mobileMenu.classList.remove("active"));
-
-    // Login
-    const btnGoogle = document.getElementById("btn-login-google-mobile");
-    const btnPhone = document.getElementById("btn-login-phone-mobile");
-    const btnLogout = document.getElementById("btn-logout-mobile");
+    const loginBtn = document.getElementById("login-btn");
+    const loginModal = document.getElementById("login-modal");
+    const closeModal = document.getElementById("close-modal");
+    const loginGoogle = document.getElementById("login-google");
+    const loginPhone = document.getElementById("login-phone");
+    const userInfo = document.getElementById("user-info");
+    const userName = document.getElementById("user-name");
+    const userPhoto = document.getElementById("user-photo");
+    const logoutBtn = document.getElementById("logout-btn");
 
     function configurarRecaptcha() {
       window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
     }
 
-    btnGoogle.addEventListener("click", async () => {
-      try { await signInWithPopup(auth, provider); }
-      catch (err) { alert("Erro no login Google: " + err.message); }
+    loginBtn.addEventListener("click", () => loginModal.classList.remove("hidden"));
+    closeModal.addEventListener("click", () => loginModal.classList.add("hidden"));
+
+    loginGoogle.addEventListener("click", async () => {
+      try {
+        await signInWithPopup(auth, provider);
+        loginModal.classList.add("hidden");
+      } catch (err) {
+        alert("Erro no login Google: " + err.message);
+      }
     });
 
-    btnPhone.addEventListener("click", async () => {
-      const numero = prompt("📱 Digite seu número (ex: +244911111111):");
+    loginPhone.addEventListener("click", async () => {
+      const numero = prompt("📱 Digite o seu número (ex: +244911111111):");
       if (!numero) return;
       try {
         configurarRecaptcha();
@@ -188,22 +136,23 @@
         const confirmationResult = await signInWithPhoneNumber(auth, numero, appVerifier);
         const codigo = prompt("Digite o código SMS recebido:");
         if (codigo) await confirmationResult.confirm(codigo);
+        loginModal.classList.add("hidden");
       } catch (err) {
         alert("Erro no login Telefone: " + err.message);
       }
     });
 
-    btnLogout.addEventListener("click", async () => await signOut(auth));
+    logoutBtn.addEventListener("click", async () => await signOut(auth));
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        btnGoogle.classList.add("hidden");
-        btnPhone.classList.add("hidden");
-        btnLogout.classList.remove("hidden");
+        loginBtn.classList.add("hidden");
+        userInfo.classList.remove("hidden");
+        userName.textContent = user.displayName || user.phoneNumber || "Utilizador";
+        userPhoto.src = user.photoURL || "https://via.placeholder.com/100.png?text=User";
       } else {
-        btnGoogle.classList.remove("hidden");
-        btnPhone.classList.remove("hidden");
-        btnLogout.classList.add("hidden");
+        loginBtn.classList.remove("hidden");
+        userInfo.classList.add("hidden");
       }
     });
 
