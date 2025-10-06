@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -16,83 +17,59 @@
     .navy-btn:hover { background-color: #112240; }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
 
   <!-- Header -->
   <header class="navy text-white p-4 shadow dark:bg-gray-800">
-    <div class="max-w-5xl mx-auto flex items-center justify-between">
-      <a href="index.html" class="text-2xl font-bold flex items-center gap-2">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
         <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
-
-      <nav class="hidden sm:flex items-center gap-6 text-sm font-medium">
+      <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="index.html" class="hover:underline">🏠 Início</a>
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="underline font-semibold">➕ Publicar</a>
+        <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
+        <a href="perfil.html" class="hover:underline">👤 Perfil</a>
       </nav>
     </div>
   </header>
 
-  <!-- Conteúdo -->
-  <main class="flex-1 max-w-3xl mx-auto w-full p-6 space-y-6">
-    <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300">Publicar Novo Item</h1>
+  <main class="flex-1 max-w-3xl mx-auto w-full p-6">
+    <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300 mb-6">Publicar Item</h1>
 
-    <form id="form-publicar" class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg space-y-4">
-      <div class="grid sm:grid-cols-2 gap-3">
-        <select id="tipo" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
-          <option value="encontrado">Encontrado</option>
-          <option value="perdido">Perdido</option>
-        </select>
+    <form id="form-publicar" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4">
+      <input type="text" id="titulo" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Título do item" required />
 
-        <select id="categoria" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
-          <option value="Carteira">Carteira</option>
-          <option value="Telemóvel">Telemóvel</option>
-          <option value="Documentos">Documentos</option>
-          <option value="Chaves">Chaves</option>
-          <option value="Outros">Outros</option>
-        </select>
-      </div>
+      <textarea id="descricao" rows="3" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Descrição (opcional)"></textarea>
 
-      <input id="titulo" required type="text" placeholder="Título do item"
-        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
+      <select id="tipo" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
+        <option value="perdido">Perdido</option>
+        <option value="encontrado">Encontrado</option>
+      </select>
 
-      <textarea id="descricao" placeholder="Descrição (opcional)"
-        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600"></textarea>
+      <select id="categoria" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
+        <option value="Documentos">Documentos</option>
+        <option value="Carteira">Carteira</option>
+        <option value="Telemóvel">Telemóvel</option>
+        <option value="Chaves">Chaves</option>
+        <option value="Outros">Outros</option>
+      </select>
 
-      <input id="foto" type="file" accept="image/*"
-        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
+      <input type="file" id="foto" accept="image/*" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" required />
 
-      <div id="preview-container" class="mt-2 hidden">
-        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Pré-visualização:</p>
-        <img id="preview-img" class="w-40 h-40 object-cover rounded-lg border shadow" />
-      </div>
-
-      <input id="contacto" required type="tel" placeholder="Contacto (WhatsApp)"
-        class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" />
-
-      <button type="submit"
-        class="navy-btn text-white w-full sm:w-auto px-6 py-3 text-lg rounded-lg flex items-center gap-2 mx-auto">
-        <i data-lucide="send" class="w-5 h-5"></i> Publicar
-      </button>
+      <button type="submit" class="w-full navy-btn text-white py-3 rounded font-semibold mt-4">Publicar</button>
     </form>
-
-    <div id="mensagem" class="text-center text-green-600 dark:text-green-400 font-semibold hidden">
-      ✅ Item publicado com sucesso! <a href="feed.html" class="underline text-blue-700 dark:text-blue-300">Ver no feed</a>
-    </div>
   </main>
 
-  <!-- Rodapé -->
-  <footer class="navy text-white p-4 text-center dark:bg-gray-800">
+  <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <!-- Firebase + Cloudinary -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } 
-      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } 
-      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
     const app = initializeApp(firebaseConfig);
@@ -100,87 +77,76 @@
     const auth = getAuth(app);
 
     const form = document.getElementById("form-publicar");
-    const previewContainer = document.getElementById("preview-container");
-    const previewImg = document.getElementById("preview-img");
-    const mensagem = document.getElementById("mensagem");
-
-    let currentUser = null;
-
-    // Cloudinary Config
-    const cloudName = "dyylw9hjm"; 
+    const cloudName = "dyylw9hjm";
     const uploadPreset = "ml_default";
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
-        alert("⚠️ Precisas de estar logado para publicar. Redirecionando...");
-        window.location.href = "index.html";
-      } else {
-        currentUser = user;
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sessão necessária',
+          text: 'Precisas de iniciar sessão antes de publicar um item.',
+          confirmButtonText: 'Fazer login'
+        }).then(() => window.location.href = "index.html");
       }
     });
 
-    // Preview da imagem
-    document.getElementById("foto").addEventListener("change", () => {
-      const file = document.getElementById("foto").files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          previewImg.src = e.target.result;
-          previewContainer.classList.remove("hidden");
-        };
-        reader.readAsDataURL(file);
-      } else {
-        previewContainer.classList.add("hidden");
-        previewImg.src = "";
-      }
-    });
-
-    // Publicar item
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (!currentUser) {
-        alert("Precisas de estar logado para publicar.");
+
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const titulo = document.getElementById("titulo").value.trim();
+      const descricao = document.getElementById("descricao").value.trim();
+      const tipo = document.getElementById("tipo").value;
+      const categoria = document.getElementById("categoria").value;
+      const foto = document.getElementById("foto").files[0];
+
+      if (!foto) {
+        Swal.fire('⚠️', 'Seleciona uma imagem antes de publicar.', 'warning');
         return;
       }
 
-      const tipo = document.getElementById("tipo").value;
-      const categoria = document.getElementById("categoria").value;
-      const titulo = document.getElementById("titulo").value;
-      const descricao = document.getElementById("descricao").value;
-      const contacto = document.getElementById("contacto").value;
-      const foto = document.getElementById("foto").files[0];
+      Swal.fire({ title: 'A publicar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-      let fotoURL = "";
-      if (foto) {
+      try {
+        // Upload da imagem
         const formData = new FormData();
         formData.append("file", foto);
         formData.append("upload_preset", uploadPreset);
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
           method: "POST",
           body: formData
         });
-        const data = await response.json();
-        fotoURL = data.secure_url;
+        const data = await res.json();
+
+        // Enviar dados para o Firestore
+        await addDoc(collection(db, "items"), {
+          uid: user.uid,
+          titulo,
+          descricao,
+          tipo,
+          categoria,
+          fotoURL: data.secure_url,
+          created_at: serverTimestamp(),
+        });
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Publicado com sucesso!',
+          text: 'O item foi adicionado ao feed.',
+          showConfirmButton: false,
+          timer: 1800
+        });
+
+        form.reset();
+        setTimeout(() => window.location.href = "feed.html", 2000);
+      } catch (error) {
+        Swal.fire('❌ Erro', 'Ocorreu um erro ao publicar o item.', 'error');
+        console.error(error);
       }
-
-      await addDoc(collection(db, "items"), {
-        uid: currentUser.uid,
-        autor: currentUser.displayName || currentUser.phoneNumber || "Anónimo",
-        tipo,
-        categoria,
-        titulo,
-        descricao,
-        contacto,
-        fotoURL,
-        created_at: serverTimestamp()
-      });
-
-      form.reset();
-      previewContainer.classList.add("hidden");
-      mensagem.classList.remove("hidden");
-      previewImg.src = "";
-
-      setTimeout(() => window.location.href = "feed.html", 2000);
     });
 
     document.getElementById("ano").textContent = new Date().getFullYear();
@@ -188,3 +154,4 @@
   </script>
 </body>
 </html>
+
