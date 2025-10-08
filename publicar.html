@@ -68,32 +68,44 @@
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <!-- Firebase + SweetAlert2 -->
+  <!-- Firebase + Cloudinary -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
+    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
     const form = document.getElementById("form-publicar");
-    const cloudName = "dyylw9hjm"; // ✅ teu Cloudinary
-    const uploadPreset = "ml_default";
+    const cloudName = "dyylw9hjm";  // O teu nome do Cloudinary
+    const uploadPreset = "ml_default";  // O teu preset
 
+    // Verificar login antes de publicar
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         Swal.fire({
           icon: "warning",
-          title: "Sessão necessária",
-          text: "Precisas de iniciar sessão antes de publicar um item.",
-          confirmButtonText: "Fazer login"
-        }).then(() => (window.location.href = "index.html"));
+          title: "Iniciar Sessão Necessária",
+          html: `
+            <p class="mb-2">Precisas de iniciar sessão para publicar um item.</p>
+            <button id="go-login" class="swal2-confirm swal2-styled" style="background:#0a192f;">🔑 Ir para Login</button>
+          `,
+          showConfirmButton: false,
+          didOpen: () => {
+            document.getElementById("go-login").addEventListener("click", () => {
+              Swal.close();
+              window.location.href = "index.html";
+            });
+          }
+        });
       }
     });
 
+    // Publicar item
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -118,28 +130,27 @@
       });
 
       try {
-        // Upload da imagem para Cloudinary
+        // Upload para Cloudinary
         const formData = new FormData();
         formData.append("file", foto);
         formData.append("upload_preset", uploadPreset);
 
-        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
           method: "POST",
           body: formData
         });
 
-        if (!uploadResponse.ok) throw new Error("Erro ao enviar imagem para Cloudinary");
+        if (!res.ok) throw new Error("Erro ao enviar imagem para Cloudinary");
+        const data = await res.json();
 
-        const uploadData = await uploadResponse.json();
-
-        // Guardar dados no Firestore
+        // Guardar no Firestore
         await addDoc(collection(db, "items"), {
           uid: user.uid,
           titulo,
           descricao,
           tipo,
           categoria,
-          fotoURL: uploadData.secure_url,
+          fotoURL: data.secure_url,
           created_at: serverTimestamp()
         });
 
