@@ -11,18 +11,38 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
     .navy { background-color: #0a192f; }
     .navy-btn { background-color: #0a192f; }
-    .navy-btn:hover { background-color: #112240; }
+    .navy-btn:hover { background-color: #112240; transform: scale(1.05); transition: 0.2s; }
+    .fade { opacity: 0; transform: translateY(10px); transition: opacity 0.8s ease, transform 0.6s ease; }
+    .fade.show { opacity: 1; transform: translateY(0); }
+    .bg-animado {
+      background: radial-gradient(circle at top left, #0a192f, #112240, #0a192f);
+      background-size: 200% 200%;
+      animation: movimento 10s ease infinite;
+    }
+    @keyframes movimento {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 0%; }
+    }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
+<body class="bg-animado text-gray-100 flex flex-col min-h-screen">
+
+  <!-- Tela de Boas-vindas -->
+  <div id="boas-vindas" class="fixed inset-0 bg-[#0a192f] flex flex-col items-center justify-center text-center text-white z-50 opacity-0 transition-opacity duration-700">
+    <h1 class="text-4xl font-bold mb-4">👋 Bem-vindo(a) ao</h1>
+    <h2 class="text-3xl font-extrabold text-blue-300 mb-6">Achados & Perdidos Angola</h2>
+    <p class="max-w-md text-gray-300 mb-8">Ajudamos a reconectar pessoas aos seus pertences. Aqui, quem encontra ajuda quem perdeu.</p>
+    <button id="entrar-site" class="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg">Entrar</button>
+  </div>
 
   <!-- Header -->
-  <header class="navy text-white p-4 shadow dark:bg-gray-800">
+  <header class="navy text-white p-4 shadow-lg">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl hover:scale-105 transition">
         <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
       <nav class="flex items-center gap-6 text-sm font-medium">
@@ -34,106 +54,65 @@
     </div>
   </header>
 
-  <!-- Banner de boas-vindas -->
-  <div id="welcome-banner" class="hidden fixed top-0 left-0 w-full bg-green-600 text-white text-center py-3 font-semibold transition-opacity duration-700 z-50"></div>
-
-  <!-- Conteúdo -->
-  <main class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-    <h1 class="text-4xl font-bold text-blue-900 dark:text-blue-300 mb-4">Bem-vindo(a) ao Achados & Perdidos Angola</h1>
-    <p class="text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
-      Ajuda a comunidade a reencontrar documentos, carteiras, telemóveis e outros objetos perdidos em Angola.
+  <!-- Conteúdo Principal -->
+  <main id="conteudo" class="flex-1 flex flex-col items-center justify-center text-center px-6 opacity-0 transition-opacity duration-700">
+    <h1 id="titulo" class="text-5xl font-bold mb-6 text-blue-100">Encontra. Ajuda. Reconecta.</h1>
+    <p class="max-w-2xl text-gray-300 mb-10 text-lg">
+      Achados & Perdidos Angola é uma plataforma gratuita que conecta quem perdeu e quem encontrou objetos pessoais em todo o país.
     </p>
-    <a href="feed.html" class="navy-btn text-white px-6 py-3 rounded font-semibold shadow hover:shadow-lg transition">Ver Feed</a>
-  </main>
 
-  <!-- Login Modal -->
-  <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-96 text-center">
-      <h2 class="text-2xl font-bold mb-4 text-blue-800 dark:text-blue-300">Iniciar Sessão</h2>
-
-      <button id="login-google" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded mb-3">Entrar com Google</button>
-      <button id="login-phone" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-4">Entrar com Telefone</button>
-
-      <div id="recaptcha-container"></div>
-
-      <button id="close-modal" class="text-gray-500 hover:underline">Cancelar</button>
-      <button id="voltar-publicar" class="block mt-2 text-blue-600 hover:underline mx-auto">⬅️ Voltar para Publicar</button>
+    <div class="flex flex-wrap gap-4 justify-center">
+      <a href="feed.html" class="navy-btn text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-2xl transition">📰 Ver Feed</a>
+      <a href="publicar.html" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-2xl transition">➕ Publicar Item</a>
     </div>
-  </div>
+
+    <div id="user-area" class="hidden mt-10 fade">
+      <p class="text-lg mb-2">👋 Olá, <span id="user-name" class="font-semibold text-blue-300"></span>!</p>
+      <a href="feed.html" class="navy-btn px-6 py-2 rounded-lg text-white font-medium shadow">Ir para o Feed</a>
+    </div>
+  </main>
 
   <footer class="navy text-white p-6 text-center mt-auto">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <!-- Firebase + Login + Mensagem de boas-vindas -->
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber } 
-      from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
 
-    const loginModal = document.getElementById("login-modal");
-    const loginGoogle = document.getElementById("login-google");
-    const loginPhone = document.getElementById("login-phone");
-    const closeModal = document.getElementById("close-modal");
-    const voltarPublicar = document.getElementById("voltar-publicar");
-    const banner = document.getElementById("welcome-banner");
+    const boasVindas = document.getElementById("boas-vindas");
+    const entrarSite = document.getElementById("entrar-site");
+    const conteudo = document.getElementById("conteudo");
+    const userArea = document.getElementById("user-area");
+    const userName = document.getElementById("user-name");
 
-    // Abrir modal automaticamente se vier de publicar.html#login
-    if (window.location.hash === "#login") {
-      setTimeout(() => {
-        loginModal.classList.remove("hidden");
-      }, 400);
+    // 1️⃣ Tela de boas-vindas (somente primeira visita)
+    if (!localStorage.getItem("visitou_site")) {
+      boasVindas.style.opacity = "1";
+    } else {
+      conteudo.style.opacity = "1";
     }
 
-    closeModal.addEventListener("click", () => loginModal.classList.add("hidden"));
-    voltarPublicar.addEventListener("click", () => window.location.href = "publicar.html");
-
-    // Função de boas-vindas
-    function mostrarBoasVindas(nome) {
-      banner.textContent = `👋 Bem-vindo(a), ${nome}!`;
-      banner.classList.remove("hidden");
-      banner.style.opacity = "1";
+    entrarSite.addEventListener("click", () => {
+      boasVindas.style.opacity = "0";
       setTimeout(() => {
-        banner.style.opacity = "0";
-        setTimeout(() => banner.classList.add("hidden"), 700);
-      }, 4000);
-    }
-
-    // Login Google
-    loginGoogle.addEventListener("click", async () => {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const nome = result.user.displayName || "Utilizador";
-        mostrarBoasVindas(nome);
-        Swal.fire('✅ Login efetuado!', 'Bem-vindo(a)!', 'success');
-        loginModal.classList.add("hidden");
-      } catch (err) {
-        Swal.fire('❌ Erro no login', err.message, 'error');
-      }
+        boasVindas.classList.add("hidden");
+        conteudo.style.opacity = "1";
+        localStorage.setItem("visitou_site", "true");
+      }, 700);
     });
 
-    // Login Telefone
-    loginPhone.addEventListener("click", async () => {
-      const numero = prompt("📱 Digite o seu número (ex: +244911111111):");
-      if (!numero) return;
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
-        const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
-        const codigo = prompt("Digite o código SMS recebido:");
-        if (codigo) {
-          const result = await confirmation.confirm(codigo);
-          const nome = result.user.phoneNumber || "Utilizador";
-          mostrarBoasVindas(nome);
-          Swal.fire('✅ Login com telefone concluído!', '', 'success');
-          loginModal.classList.add("hidden");
-        }
-      } catch (err) {
-        Swal.fire('❌ Erro no login', err.message, 'error');
+    // 2️⃣ Mostrar nome do utilizador se estiver logado
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        userName.textContent = user.displayName || user.phoneNumber || "Utilizador";
+        userArea.classList.remove("hidden");
+        setTimeout(() => userArea.classList.add("show"), 300);
       }
     });
 
@@ -142,4 +121,3 @@
   </script>
 </body>
 </html>
-
