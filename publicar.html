@@ -19,7 +19,6 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
 
-  <!-- Header -->
   <header class="navy text-white p-4 shadow dark:bg-gray-800">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
@@ -35,20 +34,19 @@
     </div>
   </header>
 
-  <!-- Conteúdo -->
+  <!-- Banner de feedback -->
+  <div id="banner" class="hidden fixed top-0 left-0 w-full bg-green-600 text-white text-center py-3 font-semibold transition-opacity duration-700 z-50"></div>
+
   <main class="flex-1 max-w-3xl mx-auto w-full p-6">
     <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300 mb-6">Publicar Item</h1>
 
     <form id="form-publicar" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4">
       <input type="text" id="titulo" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Título do item" required />
-
       <textarea id="descricao" rows="3" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Descrição (opcional)"></textarea>
-
       <select id="tipo" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
         <option value="perdido">Perdido</option>
         <option value="encontrado">Encontrado</option>
       </select>
-
       <select id="categoria" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
         <option value="Documentos">Documentos</option>
         <option value="Carteira">Carteira</option>
@@ -56,14 +54,11 @@
         <option value="Chaves">Chaves</option>
         <option value="Outros">Outros</option>
       </select>
-
       <input type="file" id="foto" accept="image/*" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-
       <button type="submit" class="w-full navy-btn text-white py-3 rounded font-semibold mt-4">Publicar</button>
     </form>
   </main>
 
-  <!-- Rodapé -->
   <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
@@ -81,10 +76,22 @@
     const auth = getAuth(app);
 
     const form = document.getElementById("form-publicar");
-    const cloudName = "dyylw9hjm";  // O teu nome do Cloudinary
-    const uploadPreset = "ml_default";  // O teu preset
+    const banner = document.getElementById("banner");
+    const cloudName = "dyylw9hjm";
+    const uploadPreset = "ml_default";
 
-    // Verificar login antes de publicar
+    // Mostrar mensagem de boas-vindas após publicação
+    function mostrarMensagem(nome) {
+      banner.textContent = `✅ Publicado com sucesso, ${nome}!`;
+      banner.classList.remove("hidden");
+      banner.style.opacity = "1";
+      setTimeout(() => {
+        banner.style.opacity = "0";
+        setTimeout(() => banner.classList.add("hidden"), 700);
+      }, 4000);
+    }
+
+    // Verifica login
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         Swal.fire({
@@ -98,7 +105,7 @@
           didOpen: () => {
             document.getElementById("go-login").addEventListener("click", () => {
               Swal.close();
-              window.location.href = "index.html";
+              window.location.href = "index.html#login";
             });
           }
         });
@@ -123,14 +130,9 @@
         return;
       }
 
-      Swal.fire({
-        title: "A publicar...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+      Swal.fire({ title: "A publicar...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
       try {
-        // Upload para Cloudinary
         const formData = new FormData();
         formData.append("file", foto);
         formData.append("upload_preset", uploadPreset);
@@ -143,7 +145,6 @@
         if (!res.ok) throw new Error("Erro ao enviar imagem para Cloudinary");
         const data = await res.json();
 
-        // Guardar no Firestore
         await addDoc(collection(db, "items"), {
           uid: user.uid,
           titulo,
@@ -154,16 +155,12 @@
           created_at: serverTimestamp()
         });
 
-        Swal.fire({
-          icon: "success",
-          title: "Publicado com sucesso!",
-          text: "O item foi adicionado ao feed.",
-          showConfirmButton: false,
-          timer: 1800
-        });
+        Swal.close();
+        const nome = user.displayName || user.phoneNumber || "Utilizador";
+        mostrarMensagem(nome);
 
         form.reset();
-        setTimeout(() => (window.location.href = "feed.html"), 2000);
+        setTimeout(() => (window.location.href = "feed.html"), 2500);
       } catch (err) {
         console.error(err);
         Swal.fire("❌ Erro", "Ocorreu um problema ao publicar o item.", "error");
