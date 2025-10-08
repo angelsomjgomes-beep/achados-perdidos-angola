@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     body { font-family: 'Inter', sans-serif; }
@@ -16,7 +17,7 @@
     .navy-btn:hover { background-color: #112240; }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 flex flex-col min-h-screen">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
 
   <!-- Header -->
   <header class="navy text-white p-4 shadow dark:bg-gray-800">
@@ -29,71 +30,45 @@
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
         <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
-
-        <button id="login-btn" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200 transition">🔑 Login</button>
-
-        <div id="user-info" class="hidden flex items-center gap-2">
-          <img id="user-photo" class="w-8 h-8 rounded-full border border-gray-400" />
-          <span id="user-name" class="text-sm"></span>
-          <button id="logout-btn" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded">Sair</button>
-        </div>
       </nav>
     </div>
   </header>
 
-  <!-- Modal de Login -->
+  <!-- Banner de boas-vindas -->
+  <div id="welcome-banner" class="hidden fixed top-0 left-0 w-full bg-green-600 text-white text-center py-3 font-semibold transition-opacity duration-700 z-50"></div>
+
+  <!-- Conteúdo -->
+  <main class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+    <h1 class="text-4xl font-bold text-blue-900 dark:text-blue-300 mb-4">Bem-vindo(a) ao Achados & Perdidos Angola</h1>
+    <p class="text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
+      Ajuda a comunidade a reencontrar documentos, carteiras, telemóveis e outros objetos perdidos em Angola.
+    </p>
+    <a href="feed.html" class="navy-btn text-white px-6 py-3 rounded font-semibold shadow hover:shadow-lg transition">Ver Feed</a>
+  </main>
+
+  <!-- Login Modal -->
   <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 p-6 space-y-4 text-center">
-      <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-300">Iniciar Sessão</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400">Escolhe uma opção de login</p>
-      <button id="login-google"
-        class="bg-white text-black px-3 py-2 rounded text-sm hover:bg-gray-200 transition flex items-center gap-2 w-full justify-center">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
-        Entrar com Google
-      </button>
-      <button id="login-phone"
-        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition flex items-center gap-2 w-full justify-center">
-        <i data-lucide="phone" class="w-5 h-5"></i> Entrar com Telefone
-      </button>
-      <button id="close-modal" class="mt-2 text-sm text-gray-400 hover:underline">Cancelar</button>
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-96 text-center">
+      <h2 class="text-2xl font-bold mb-4 text-blue-800 dark:text-blue-300">Iniciar Sessão</h2>
+
+      <button id="login-google" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded mb-3">Entrar com Google</button>
+      <button id="login-phone" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-4">Entrar com Telefone</button>
+
+      <div id="recaptcha-container"></div>
+
+      <button id="close-modal" class="text-gray-500 hover:underline">Cancelar</button>
+      <button id="voltar-publicar" class="block mt-2 text-blue-600 hover:underline mx-auto">⬅️ Voltar para Publicar</button>
     </div>
   </div>
 
-  <div id="recaptcha-container"></div>
-
-  <!-- Conteúdo Principal -->
-  <main class="flex-1 max-w-3xl mx-auto w-full p-8 text-center space-y-8">
-    <h1 class="text-4xl font-bold text-blue-900 dark:text-blue-300">Bem-vindo ao Achados & Perdidos Angola</h1>
-    <p class="text-lg text-gray-600 dark:text-gray-300">
-      Conectamos pessoas que <strong>perderam</strong> e <strong>encontraram</strong> objetos em todo o país.
-    </p>
-
-    <div class="grid sm:grid-cols-2 gap-6 mt-8">
-      <a href="feed.html"
-        class="block p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition hover:-translate-y-1">
-        <i data-lucide="newspaper" class="w-10 h-10 mx-auto text-blue-700"></i>
-        <h2 class="text-xl font-semibold mt-2">Ver Feed</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Explora os itens perdidos e encontrados</p>
-      </a>
-
-      <a href="publicar.html"
-        class="block p-6 bg-blue-700 text-white rounded-xl shadow hover:shadow-lg transition hover:-translate-y-1">
-        <i data-lucide="plus-circle" class="w-10 h-10 mx-auto"></i>
-        <h2 class="text-xl font-semibold mt-2">Publicar Item</h2>
-        <p class="text-sm mt-1">Adiciona o teu item perdido ou encontrado</p>
-      </a>
-    </div>
-  </main>
-
-  <!-- Rodapé -->
-  <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
+  <footer class="navy text-white p-6 text-center mt-auto">
     © <span id="ano"></span> Achados & Perdidos Angola
   </footer>
 
-  <!-- Firebase Login Script -->
+  <!-- Firebase + Login + Mensagem de boas-vindas -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged } 
+    import { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber } 
       from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
     import { firebaseConfig } from "./firebase-config.js";
 
@@ -101,58 +76,64 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    const loginBtn = document.getElementById("login-btn");
     const loginModal = document.getElementById("login-modal");
-    const closeModal = document.getElementById("close-modal");
     const loginGoogle = document.getElementById("login-google");
     const loginPhone = document.getElementById("login-phone");
-    const userInfo = document.getElementById("user-info");
-    const userName = document.getElementById("user-name");
-    const userPhoto = document.getElementById("user-photo");
-    const logoutBtn = document.getElementById("logout-btn");
+    const closeModal = document.getElementById("close-modal");
+    const voltarPublicar = document.getElementById("voltar-publicar");
+    const banner = document.getElementById("welcome-banner");
 
-    function configurarRecaptcha() {
-      window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
+    // Abrir modal automaticamente se vier de publicar.html#login
+    if (window.location.hash === "#login") {
+      setTimeout(() => {
+        loginModal.classList.remove("hidden");
+      }, 400);
     }
 
-    loginBtn.addEventListener("click", () => loginModal.classList.remove("hidden"));
     closeModal.addEventListener("click", () => loginModal.classList.add("hidden"));
+    voltarPublicar.addEventListener("click", () => window.location.href = "publicar.html");
 
+    // Função de boas-vindas
+    function mostrarBoasVindas(nome) {
+      banner.textContent = `👋 Bem-vindo(a), ${nome}!`;
+      banner.classList.remove("hidden");
+      banner.style.opacity = "1";
+      setTimeout(() => {
+        banner.style.opacity = "0";
+        setTimeout(() => banner.classList.add("hidden"), 700);
+      }, 4000);
+    }
+
+    // Login Google
     loginGoogle.addEventListener("click", async () => {
       try {
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const nome = result.user.displayName || "Utilizador";
+        mostrarBoasVindas(nome);
+        Swal.fire('✅ Login efetuado!', 'Bem-vindo(a)!', 'success');
         loginModal.classList.add("hidden");
       } catch (err) {
-        alert("Erro no login Google: " + err.message);
+        Swal.fire('❌ Erro no login', err.message, 'error');
       }
     });
 
+    // Login Telefone
     loginPhone.addEventListener("click", async () => {
       const numero = prompt("📱 Digite o seu número (ex: +244911111111):");
       if (!numero) return;
       try {
-        configurarRecaptcha();
-        const appVerifier = window.recaptchaVerifier;
-        const confirmationResult = await signInWithPhoneNumber(auth, numero, appVerifier);
+        window.recaptchaVerifier = new RecaptchaVerifier("recaptcha-container", { size: "invisible" }, auth);
+        const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
         const codigo = prompt("Digite o código SMS recebido:");
-        if (codigo) await confirmationResult.confirm(codigo);
-        loginModal.classList.add("hidden");
+        if (codigo) {
+          const result = await confirmation.confirm(codigo);
+          const nome = result.user.phoneNumber || "Utilizador";
+          mostrarBoasVindas(nome);
+          Swal.fire('✅ Login com telefone concluído!', '', 'success');
+          loginModal.classList.add("hidden");
+        }
       } catch (err) {
-        alert("Erro no login Telefone: " + err.message);
-      }
-    });
-
-    logoutBtn.addEventListener("click", async () => await signOut(auth));
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginBtn.classList.add("hidden");
-        userInfo.classList.remove("hidden");
-        userName.textContent = user.displayName || user.phoneNumber || "Utilizador";
-        userPhoto.src = user.photoURL || "https://via.placeholder.com/100.png?text=User";
-      } else {
-        loginBtn.classList.remove("hidden");
-        userInfo.classList.add("hidden");
+        Swal.fire('❌ Erro no login', err.message, 'error');
       }
     });
 
@@ -161,3 +142,4 @@
   </script>
 </body>
 </html>
+
