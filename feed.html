@@ -16,6 +16,8 @@
     .navy-btn { background-color: #0a192f; }
     .navy-btn:hover { background-color: #112240; }
     .badge { background-color: #0a192f; color: white; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 9999px; }
+    .fade-in { opacity: 0; transform: scale(0.98); transition: opacity 0.5s ease, transform 0.4s ease; }
+    .fade-in.visible { opacity: 1; transform: scale(1); }
   </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
@@ -31,16 +33,34 @@
         <a href="feed.html" class="underline font-semibold">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
         <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
-        <a href="perfil.html" class="hover:underline">👤 Perfil</a>
       </nav>
     </div>
   </header>
+
+  <!-- User Info -->
+  <section id="user-info" class="hidden bg-blue-50 dark:bg-gray-800 py-3 px-6 text-center border-b border-blue-200 dark:border-gray-700">
+    <img id="user-photo" src="" alt="" class="mx-auto w-14 h-14 rounded-full mb-2 border-2 border-blue-600" />
+    <h2 id="user-name" class="text-lg font-semibold text-blue-800 dark:text-blue-300"></h2>
+  </section>
+
+  <!-- Filtros -->
+  <div class="max-w-5xl mx-auto mt-6 px-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <input id="search" type="text" placeholder="🔍 Procurar item..." class="flex-1 p-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
+    <select id="filtro" class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+      <option value="todos">Todas as categorias</option>
+      <option value="Documentos">Documentos</option>
+      <option value="Carteira">Carteira</option>
+      <option value="Telemóvel">Telemóvel</option>
+      <option value="Chaves">Chaves</option>
+      <option value="Outros">Outros</option>
+    </select>
+  </div>
 
   <!-- Conteúdo -->
   <main class="flex-1 max-w-5xl mx-auto w-full p-6">
     <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300 mb-8">Itens Perdidos e Encontrados</h1>
     <div id="feed" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    <p id="sem-itens" class="hidden text-center text-gray-500 mt-6">Nenhum item publicado ainda 😔</p>
+    <p id="sem-itens" class="hidden text-center text-gray-500 mt-6">Nenhum item encontrado 😔</p>
   </main>
 
   <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
@@ -60,10 +80,17 @@
 
     const feed = document.getElementById("feed");
     const semItens = document.getElementById("sem-itens");
+    const filtro = document.getElementById("filtro");
+    const search = document.getElementById("search");
+    const userInfo = document.getElementById("user-info");
+    const userName = document.getElementById("user-name");
+    const userPhoto = document.getElementById("user-photo");
 
-    async function carregarFeed(userId = null) {
+    let todosOsItens = [];
+    let userId = null;
+
+    async function carregarFeed() {
       Swal.fire({ title: '🔄 A carregar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
       try {
         const q = query(collection(db, "items"), orderBy("created_at", "desc"));
         const snap = await getDocs(q);
@@ -74,58 +101,79 @@
           return;
         }
 
-        feed.innerHTML = "";
-
-        // Itens do utilizador logado primeiro
-        const meus = [];
-        const outros = [];
-
-        snap.forEach((docSnap) => {
-          const it = docSnap.data();
-          if (it.uid === userId) meus.push(it);
-          else outros.push(it);
-        });
-
-        const todos = [...meus, ...outros];
-        todos.forEach((it) => {
-          const card = document.createElement("div");
-          card.className = "bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow hover:shadow-lg p-4 transition";
-          card.innerHTML = `
-            ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full h-48 object-cover rounded-lg mb-3">` : ""}
-            <div class="flex justify-between items-center">
-              <h2 class="text-lg font-semibold">${it.titulo}</h2>
-              ${it.uid === userId ? `<span class="badge">Publicado por mim</span>` : ""}
-            </div>
-            <p class="text-sm text-gray-500">${it.categoria} • ${it.tipo}</p>
-            <p class="mt-2 text-sm">${it.descricao || ""}</p>
-            <div class="mt-4 flex justify-between items-center">
-              <a href="https://wa.me/${it.telefone || ''}" target="_blank"
-                 class="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded">📱 Contactar</a>
-              <button class="reportar text-xs text-red-500 hover:underline">🚩 Reportar</button>
-            </div>
-          `;
-          feed.appendChild(card);
-
-          // Evento de reportar
-          card.querySelector(".reportar").addEventListener("click", () => {
-            Swal.fire({
-              icon: 'info',
-              title: 'Reportar item',
-              text: 'Esta funcionalidade estará disponível em breve.',
-              confirmButtonText: 'OK'
-            });
-          });
-        });
+        todosOsItens = [];
+        snap.forEach((docSnap) => todosOsItens.push({ id: docSnap.id, ...docSnap.data() }));
+        renderizarFeed();
       } catch (err) {
         Swal.fire('❌ Erro', 'Não foi possível carregar o feed.', 'error');
         console.error(err);
       }
     }
 
-    // Espera pelo estado do login
+    function renderizarFeed() {
+      feed.innerHTML = "";
+      const termo = search.value.toLowerCase();
+      const categoria = filtro.value;
+
+      let filtrados = todosOsItens.filter(it =>
+        (categoria === "todos" || it.categoria === categoria) &&
+        (it.titulo.toLowerCase().includes(termo) || (it.descricao || "").toLowerCase().includes(termo))
+      );
+
+      // Ordenar: meus itens primeiro
+      filtrados.sort((a, b) => (a.uid === userId ? -1 : 1));
+
+      if (filtrados.length === 0) {
+        semItens.classList.remove("hidden");
+        return;
+      } else {
+        semItens.classList.add("hidden");
+      }
+
+      filtrados.forEach((it, i) => {
+        const card = document.createElement("div");
+        const tipoCor = it.tipo === "encontrado" ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20";
+        card.className = `fade-in ${tipoCor} border dark:border-gray-700 rounded-lg shadow hover:shadow-lg p-4 transition`;
+        card.innerHTML = `
+          ${it.fotoURL ? `<img src="${it.fotoURL}" class="w-full h-48 object-cover rounded-lg mb-3">` : ""}
+          <div class="flex justify-between items-center">
+            <h2 class="text-lg font-semibold">${it.titulo}</h2>
+            ${it.uid === userId ? `<span class="badge">Publicado por mim</span>` : ""}
+          </div>
+          <p class="text-sm text-gray-500">${it.categoria} • ${it.tipo}</p>
+          <p class="mt-2 text-sm">${it.descricao || ""}</p>
+          <div class="mt-4 flex justify-between items-center">
+            <a href="https://wa.me/${it.telefone || ''}" target="_blank"
+               class="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded">📱 Contactar</a>
+            <button class="reportar text-xs text-red-500 hover:underline">🚩 Reportar</button>
+          </div>
+        `;
+        feed.appendChild(card);
+
+        setTimeout(() => card.classList.add("visible"), 100 * i);
+
+        card.querySelector(".reportar").addEventListener("click", () => {
+          Swal.fire({
+            icon: 'info',
+            title: 'Reportar item',
+            text: 'Esta funcionalidade estará disponível em breve.',
+            confirmButtonText: 'OK'
+          });
+        });
+      });
+    }
+
+    filtro.addEventListener("change", renderizarFeed);
+    search.addEventListener("input", renderizarFeed);
+
     onAuthStateChanged(auth, (user) => {
-      const uid = user ? user.uid : null;
-      carregarFeed(uid);
+      userId = user ? user.uid : null;
+      if (user) {
+        userInfo.classList.remove("hidden");
+        userName.textContent = user.displayName || user.phoneNumber || "Utilizador";
+        userPhoto.src = user.photoURL || "https://via.placeholder.com/100.png?text=User";
+      }
+      carregarFeed();
     });
 
     document.getElementById("ano").textContent = new Date().getFullYear();
@@ -133,5 +181,4 @@
   </script>
 </body>
 </html>
-
 
