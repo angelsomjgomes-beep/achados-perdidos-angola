@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Publicar Item — Achados & Perdidos Angola</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .navy { background-color: #0a192f; }
+    .navy-btn { background-color: #0a192f; }
+    .navy-btn:hover { background-color: #112240; }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col min-h-screen">
+
+  <!-- Header -->
+  <header class="navy text-white p-4 shadow dark:bg-gray-800">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
+        <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
+      </a>
+      <nav class="flex items-center gap-6 text-sm font-medium">
+        <a href="index.html" class="hover:underline">🏠 Início</a>
+        <a href="feed.html" class="hover:underline">📰 Feed</a>
+        <a href="publicar.html" class="underline font-semibold">➕ Publicar</a>
+        <a href="sobre.html" class="hover:underline">ℹ️ Sobre</a>
+        <a href="perfil.html" class="hover:underline">👤 Perfil</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Conteúdo -->
+  <main class="flex-1 max-w-3xl mx-auto w-full p-6">
+    <h1 class="text-3xl font-bold text-center text-blue-900 dark:text-blue-300 mb-6">Publicar Item</h1>
+
+    <form id="form-publicar" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow space-y-4">
+      <input type="text" id="titulo" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Título do item" required />
+
+      <textarea id="descricao" rows="3" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="Descrição (opcional)"></textarea>
+
+      <select id="tipo" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
+        <option value="perdido">Perdido</option>
+        <option value="encontrado">Encontrado</option>
+      </select>
+
+      <select id="categoria" class="p-3 border rounded w-full dark:bg-gray-700 dark:border-gray-600">
+        <option value="Documentos">Documentos</option>
+        <option value="Carteira">Carteira</option>
+        <option value="Telemóvel">Telemóvel</option>
+        <option value="Chaves">Chaves</option>
+        <option value="Outros">Outros</option>
+      </select>
+
+      <input type="file" id="foto" accept="image/*" class="w-full p-3 border rounded dark:bg-gray-700 dark:border-gray-600" required />
+
+      <button type="submit" class="w-full navy-btn text-white py-3 rounded font-semibold mt-4">Publicar</button>
+    </form>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="navy text-white p-6 text-center dark:bg-gray-800 mt-8">
+    © <span id="ano"></span> Achados & Perdidos Angola
+  </footer>
+
+  <!-- Firebase + SweetAlert2 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const form = document.getElementById("form-publicar");
+    const cloudName = "dyylw9hjm"; // ✅ teu Cloudinary
+    const uploadPreset = "ml_default";
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        Swal.fire({
+          icon: "warning",
+          title: "Sessão necessária",
+          text: "Precisas de iniciar sessão antes de publicar um item.",
+          confirmButtonText: "Fazer login"
+        }).then(() => (window.location.href = "index.html"));
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const titulo = document.getElementById("titulo").value.trim();
+      const descricao = document.getElementById("descricao").value.trim();
+      const tipo = document.getElementById("tipo").value;
+      const categoria = document.getElementById("categoria").value;
+      const foto = document.getElementById("foto").files[0];
+
+      if (!foto) {
+        Swal.fire("⚠️", "Seleciona uma imagem antes de publicar.", "warning");
+        return;
+      }
+
+      Swal.fire({
+        title: "A publicar...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        // Upload da imagem para Cloudinary
+        const formData = new FormData();
+        formData.append("file", foto);
+        formData.append("upload_preset", uploadPreset);
+
+        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: formData
+        });
+
+        if (!uploadResponse.ok) throw new Error("Erro ao enviar imagem para Cloudinary");
+
+        const uploadData = await uploadResponse.json();
+
+        // Guardar dados no Firestore
+        await addDoc(collection(db, "items"), {
+          uid: user.uid,
+          titulo,
+          descricao,
+          tipo,
+          categoria,
+          fotoURL: uploadData.secure_url,
+          created_at: serverTimestamp()
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: "Publicado com sucesso!",
+          text: "O item foi adicionado ao feed.",
+          showConfirmButton: false,
+          timer: 1800
+        });
+
+        form.reset();
+        setTimeout(() => (window.location.href = "feed.html"), 2000);
+      } catch (err) {
+        console.error(err);
+        Swal.fire("❌ Erro", "Ocorreu um problema ao publicar o item.", "error");
+      }
+    });
+
+    document.getElementById("ano").textContent = new Date().getFullYear();
+    lucide.createIcons();
+  </script>
+</body>
+</html>
