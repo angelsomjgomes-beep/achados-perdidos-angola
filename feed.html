@@ -41,7 +41,7 @@ transform .35s ease }
 </div>
 </header>
 <main class="max-w-6xl mx-auto p-6 mt-28">
-5
+
 <div class="flex items-center justify-between mb-6 gap-4">
 <input id="search" type="text" placeholder=" Procurar por título ou
 descrição..." class="flex-1 p-3 rounded border dark:bg-gray-700" />
@@ -85,7 +85,7 @@ try{
 const q = query(collection(db,'items'),
 orderBy('created_at','desc'));
 const snap = await getDocs(q);
-6
+
 Swal.close();
 todos = [];
 snap.forEach(d=> todos.push({ id:d.id, ...d.data() }));
@@ -131,7 +131,7 @@ card.querySelector('.reportar').addEventListener('click', ()=>
 Swal.fire(' ','Funcionalidade de reportar em desenvolvimento.','info'));
 });
 }
-7
+
 search.addEventListener('input', render);
 filtro.addEventListener('change', render);
 onAuthStateChanged(auth, user=>{ userId = user? user.uid: null;
