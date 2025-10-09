@@ -1,62 +1,129 @@
 <!doctype html>
 <html lang="pt">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Login — Achados & Perdidos Angola</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — Achados & Perdidos Angola</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?
-family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<style>
-body{ font-family:'Inter',sans-serif; background:radial-gradient(circle
-at top left,#0a192f,#112240,#0a192f); color:#e6f0ff }
-.card{ background: rgba(255,255,255,0.06); backdrop-filter: blur(8px);
-border:1px solid rgba(255,255,255,0.06); border-radius:12px }
-</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top left, #0a192f, #112240, #0a192f);
+      color: #e6f0ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    button {
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.03);
+    }
+  </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
-<div class="card p-8 max-w-md mx-auto text-center">
-<h1 class="text-2xl font-bold mb-4">Iniciar Sessão</h1>
-<p class="text-gray-300 mb-6">Entrar com Google ou número de telefone</p>
-<button id="login-google" class="w-full bg-red-500 hover:bg-red-600 textwhite py-2 rounded mb-3">Entrar com Google</button>
-<button id="login-phone" class="w-full bg-green-600 hover:bg-green-700
-text-white py-2 rounded mb-3">Entrar com Telefone</button>
-<div id="recaptcha-container"></div>
-<p class="text-sm text-gray-400 mt-4">Depois de entrar podes publicar e
-gerir os teus anúncios.</p>
-</div>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/
-firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider,
-RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/
-firebasejs/9.22.2/firebase-auth.js";
-import { firebaseConfig } from './firebase-config.js';
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
-document.getElementById('login-google').addEventListener('click', async
-()=>{
-try{ await signInWithPopup(auth, provider); Swal.fire(' ','Login
-efetuado!','success'); setTimeout(()=> location.href='feed.html',800); }
-catch(e){ Swal.fire(' ','Erro no login: '+e.message,'error') }
-});
-document.getElementById('login-phone').addEventListener('click', async
-()=>{
-const numero = prompt(' Digite o seu número (ex: +244911111111):');
-if(!numero) return;
-try{ window.recaptchaVerifier = new RecaptchaVerifier('recaptcha11
-container',{size:'invisible'}, auth); const confirmation = await
-signInWithPhoneNumber(auth, numero, window.recaptchaVerifier); const codigo
-= prompt('Digite o código SMS recebido:'); if(codigo) await
-confirmation.confirm(codigo); Swal.fire(' ','Login efetuado!','success');
-setTimeout(()=> location.href='feed.html',800); }
-catch(e){ Swal.fire(' ','Erro no login: '+e.message,'error') }
-});
-lucide.createIcons();
-</script>
+<body>
+  <div class="card">
+    <i data-lucide="search" class="w-10 h-10 mx-auto mb-3 text-blue-400"></i>
+    <h1 class="text-2xl font-bold mb-2">Iniciar Sessão</h1>
+    <p class="text-gray-300 mb-6 text-sm">Escolha uma das opções para continuar</p>
+
+    <button id="login-google" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded mb-3 font-semibold">🔑 Entrar com Google</button>
+    <button id="login-phone" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-3 font-semibold">📱 Entrar com Telefone</button>
+
+    <div id="recaptcha-container"></div>
+
+    <p class="text-gray-400 text-sm mt-4">
+      Depois de iniciar sessão, poderá publicar e gerir os seus itens perdidos/encontrados.
+    </p>
+    <a href="index.html" class="block mt-4 text-blue-400 hover:underline text-sm">⬅️ Voltar ao Início</a>
+  </div>
+
+  <script type="module">
+    (async () => {
+      try {
+        const [{ initializeApp }, { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged }, lucideModule] = await Promise.all([
+          import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
+          import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
+          import('https://unpkg.com/lucide@latest')
+        ]);
+
+        const firebaseCfg = await import('./firebase-config.js').catch(() => {
+          throw new Error('❌ O ficheiro firebase-config.js não foi encontrado. Coloca-o na mesma pasta.');
+        });
+
+        const app = initializeApp(firebaseCfg.firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Login com Google
+        document.getElementById('login-google').addEventListener('click', async () => {
+          try {
+            await signInWithPopup(auth, provider);
+            Swal.fire('✅ Sucesso', 'Login efetuado com Google!', 'success');
+            setTimeout(() => location.href = 'feed.html', 1000);
+          } catch (err) {
+            Swal.fire('❌ Erro', err.message, 'error');
+          }
+        });
+
+        // Login com Telefone
+        document.getElementById('login-phone').addEventListener('click', async () => {
+          const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
+          if (!numero) return;
+          try {
+            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+            const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
+            const codigo = prompt('Digite o código SMS recebido:');
+            if (codigo) {
+              await confirmation.confirm(codigo);
+              Swal.fire('✅ Sucesso', 'Login efetuado com telefone!', 'success');
+              setTimeout(() => location.href = 'feed.html', 1000);
+            }
+          } catch (err) {
+            Swal.fire('❌ Erro no login', err.message, 'error');
+          }
+        });
+
+        // Detetar login automático
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Sessão ativa',
+              text: 'Já está autenticado!',
+              timer: 1500,
+              showConfirmButton: false
+            });
+            setTimeout(() => location.href = 'feed.html', 1000);
+          }
+        });
+
+        if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
+      } catch (err) {
+        console.error(err);
+        Swal.fire('❌ Erro ao iniciar página', err.message || String(err), 'error');
+      }
+    })();
+  </script>
 </body>
 </html>
+
