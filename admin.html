@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Achados & Perdidos Angola</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top left, #081127, #0a192f 60%, #071227); color:#e6f0ff; min-height:100vh; }
+    header { backdrop-filter: blur(6px); background: rgba(10,25,47,0.85); }
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.04); border-radius:12px; padding:1rem; }
+    .tab-active { background: linear-gradient(90deg,#0b3a84,#134bd6); color:white; }
+    .small { font-size: .85rem; color:#cfd8ff; }
+    .table-scroll { max-height:60vh; overflow:auto; }
+    .pill { padding: .25rem .6rem; border-radius:999px; font-size:.8rem; background: rgba(255,255,255,0.04); }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
+        <i data-lucide="shield-check" class="w-6 h-6"></i> Painel Admin
+      </a>
+      <nav class="flex items-center gap-4 text-sm">
+        <a href="index.html" class="hover:underline">🏠 Site</a>
+        <a href="feed.html" class="hover:underline">📰 Feed</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6 mt-24">
+    <section class="mb-6 flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">Painel administrativo</h1>
+        <p class="small mt-1">Gerir itens, utilizadores e ver estatísticas — acesso restrito.</p>
+      </div>
+      <div class="flex gap-2 items-center">
+        <span id="admin-email" class="pill">–</span>
+        <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Sair</button>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="mb-6 card">
+      <div class="flex gap-2">
+        <button id="tab-stats" class="px-4 py-2 tab-active rounded">📊 Estatísticas</button>
+        <button id="tab-items" class="px-4 py-2 rounded">📦 Itens</button>
+        <button id="tab-users" class="px-4 py-2 rounded">👥 Utilizadores</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+      <!-- Stats -->
+      <div id="panel-stats" class="card mb-6">
+        <div class="grid sm:grid-cols-3 gap-4 mb-4">
+          <div class="p-4">
+            <div class="text-xs small">Utilizadores</div>
+            <div id="count-users" class="text-2xl font-bold">—</div>
+          </div>
+          <div class="p-4">
+            <div class="text-xs small">Itens publicados</div>
+            <div id="count-items" class="text-2xl font-bold">—</div>
+          </div>
+          <div class="p-4">
+            <div class="text-xs small">Itens visíveis</div>
+            <div id="count-visible" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="card">
+            <h3 class="font-semibold mb-2">Itens por categoria</h3>
+            <canvas id="chart-categories" width="400" height="240"></canvas>
+          </div>
+          <div class="card">
+            <h3 class="font-semibold mb-2">Últimos itens</h3>
+            <div id="recent-items" class="table-scroll space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div id="panel-items" class="card mb-6 hidden">
+        <div class="flex items-center gap-3 mb-4">
+          <label class="small">Filtrar por categoria:</label>
+          <select id="admin-filter-cat" class="p-2 rounded bg-[rgba(255,255,255,0.02)]">
+            <option value="">Todas</option>
+            <option>Documentos</option>
+            <option>Carteira</option>
+            <option>Telemóvel</option>
+            <option>Chaves</option>
+            <option>Outros</option>
+          </select>
+        </div>
+
+        <div id="items-table" class="table-scroll">
+          <!-- tabela gerada dinamicamente -->
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div id="panel-users" class="card mb-6 hidden">
+        <div id="users-table" class="table-scroll"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center text-sm text-gray-400 p-6">© <span id="ano"></span> Achados & Perdidos Angola</footer>
+
+  <script type="module">
+  (async () => {
+    // Lista de admins autorizados (edita aqui se precisares)
+    const ADMINS = ["angelsomjgomes@gmail.com"];
+
+    try {
+      const [
+        { initializeApp },
+        {
+          getFirestore, collection, query, where, getDocs, orderBy,
+          deleteDoc, doc, updateDoc, getCountFromServer
+        },
+        { getAuth, onAuthStateChanged, signOut },
+        lucideModule
+      ] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js'),
+        import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
+        import('https://unpkg.com/lucide@latest')
+      ]);
+
+      const firebaseCfg = await import('./firebase-config.js').catch(() => null);
+      if (!firebaseCfg) throw new Error('Ficheiro firebase-config.js não encontrado.');
+
+      const app = initializeApp(firebaseCfg.firebaseConfig);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+
+      // UI refs
+      const adminEmailEl = document.getElementById('admin-email');
+      const logoutBtn = document.getElementById('logout-btn');
+      const tabStats = document.getElementById('tab-stats');
+      const tabItems = document.getElementById('tab-items');
+      const tabUsers = document.getElementById('tab-users');
+      const panelStats = document.getElementById('panel-stats');
+      const panelItems = document.getElementById('panel-items');
+      const panelUsers = document.getElementById('panel-users');
+      const countUsersEl = document.getElementById('count-users');
+      const countItemsEl = document.getElementById('count-items');
+      const countVisibleEl = document.getElementById('count-visible');
+      const recentItemsEl = document.getElementById('recent-items');
+      const chartCtx = document.getElementById('chart-categories').getContext('2d');
+      const itemsTable = document.getElementById('items-table');
+      const usersTable = document.getElementById('users-table');
+      const filterCat = document.getElementById('admin-filter-cat');
+
+      const setActiveTab = (tab) => {
+        [tabStats, tabItems, tabUsers].forEach(b => b.classList.remove('tab-active'));
+        [panelStats, panelItems, panelUsers].forEach(p => p.classList.add('hidden'));
+        if (tab === 'stats') { tabStats.classList.add('tab-active'); panelStats.classList.remove('hidden'); }
+        if (tab === 'items') { tabItems.classList.add('tab-active'); panelItems.classList.remove('hidden'); }
+        if (tab === 'users') { tabUsers.classList.add('tab-active'); panelUsers.classList.remove('hidden'); }
+      };
+
+      tabStats.addEventListener('click', () => setActiveTab('stats'));
+      tabItems.addEventListener('click', () => setActiveTab('items'));
+      tabUsers.addEventListener('click', () => setActiveTab('users'));
+      setActiveTab('stats');
+
+      // Globals
+      let currentUser = null;
+      let allItems = [];
+      let allUsers = [];
+
+      // Auth check + admin guard
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // não autenticado
+          Swal.fire('🔒 Acesso restrito', 'Tem de iniciar sessão com a conta de administrador.', 'warning')
+            .then(() => window.location.href = 'index.html');
+          return;
+        }
+        currentUser = user;
+        adminEmailEl.textContent = user.email || user.phoneNumber || 'Admin';
+
+        // verificar se é admin
+        const email = (user.email || '').toLowerCase();
+        if (!ADMINS.includes(email)) {
+          Swal.fire('🚫 Não autorizado', 'A sua conta não tem permissão para aceder ao painel.', 'error')
+            .then(() => { signOut(auth).finally(() => window.location.href = 'index.html'); });
+          return;
+        }
+
+        // carregar dados
+        await carregarTudo();
+      });
+
+      logoutBtn.addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Carregar tudo: items + users + estatísticas
+      async function carregarTudo() {
+        try {
+          // Items (mais recentes primeiro)
+          const q = query(collection(db, 'items'), orderBy('created_at', 'desc'));
+          const snap = await getDocs(q);
+          allItems = [];
+          snap.forEach(d => allItems.push({ id: d.id, ...d.data() }));
+
+          // Users
+          const uq = query(collection(db, 'users'));
+          const usnap = await getDocs(uq);
+          allUsers = [];
+          usnap.forEach(u => allUsers.push({ id: u.id, ...u.data() }));
+
+          // Stats counts (simple way)
+          countItemsEl.textContent = allItems.length;
+          countUsersEl.textContent = allUsers.length;
+          countVisibleEl.textContent = allItems.filter(i => i.visible !== false).length;
+
+          renderRecentItems();
+          renderItemsTable();
+          renderUsersTable();
+          renderChart();
+
+        } catch (e) {
+          console.error('Erro carregar painel:', e);
+          Swal.fire('❌ Erro', 'Falha ao carregar dados do Firestore.', 'error');
+        }
+      }
+
+      // Recent items list
+      function renderRecentItems() {
+        recentItemsEl.innerHTML = '';
+        allItems.slice(0, 8).forEach(it => {
+          const el = document.createElement('div');
+          el.className = 'flex items-center gap-3 p-2 border-b border-[rgba(255,255,255,0.03)]';
+          el.innerHTML = `
+            <img src="${it.fotoURL || 'https://cdn-icons-png.flaticon.com/512/151/151970.png'}" class="w-12 h-12 rounded object-cover">
+            <div class="flex-1">
+              <div class="font-semibold">${it.titulo}</div>
+              <div class="small">${it.categoria} • ${it.tipo} • ${new Date(it.created_at?.seconds * 1000 || Date.now()).toLocaleString()}</div>
+            </div>
+            <div class="text-right small">${it.contacto || ''}</div>
+          `;
+          recentItemsEl.appendChild(el);
+        });
+      }
+
+      // Items table render (with actions)
+      function renderItemsTable() {
+        const cat = filterCat.value;
+        const filtered = allItems.filter(i => !cat || i.categoria === cat);
+        if (filtered.length === 0) {
+          itemsTable.innerHTML = '<p class="text-gray-400 p-4">Nenhum item para mostrar.</p>';
+          return;
+        }
+
+        const rows = filtered.map(it => {
+          const visible = it.visible !== false;
+          return `
+            <div class="p-3 border-b border-[rgba(255,255,255,0.03)] flex items-start gap-3">
+              <img src="${it.fotoURL || 'https://cdn-icons-png.flaticon.com/512/151/151970.png'}" class="w-20 h-20 rounded object-cover">
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-semibold text-lg">${it.titulo}</div>
+                    <div class="small">${it.categoria} • ${it.tipo}</div>
+                    <div class="small">${new Date(it.created_at?.seconds * 1000 || Date.now()).toLocaleString()}</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="small">por <b>${it.uid}</b></div>
+                    <div class="small mt-1">${visible ? '<span class="pill">Visível</span>' : '<span class="pill">Oculto</span>'}</div>
+                  </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-300">${it.descricao || ''}</p>
+                <div class="mt-3 flex gap-2">
+                  <button data-id="${it.id}" class="btn-delete bg-red-600 text-white px-3 py-1 rounded text-sm">Eliminar</button>
+                  <button data-id="${it.id}" class="btn-toggle bg-yellow-600 text-white px-3 py-1 rounded text-sm">${visible ? 'Ocultar' : 'Mostrar'}</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        itemsTable.innerHTML = rows;
+
+        // wire actions
+        itemsTable.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          const confirm = await Swal.fire({ title: 'Eliminar?', text: 'Eliminar este item irá removê-lo permanentemente.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Eliminar' });
+          if (confirm.isConfirmed) {
+            try {
+              await deleteDoc(doc(db, 'items', id));
+              Swal.fire('✅ Eliminado', 'Item eliminado com sucesso.', 'success');
+              await carregarTudo();
+            } catch (err) {
+              console.error(err);
+              Swal.fire('❌ Erro', 'Não foi possível eliminar o item.', 'error');
+            }
+          }
+        }));
+
+        itemsTable.querySelectorAll('.btn-toggle').forEach(b => b.addEventListener('click', async (e) => {
+          const id = e.currentTarget.dataset.id;
+          const it = allItems.find(x => x.id === id);
+          if (!it) return;
+          const newVisible = !(it.visible !== false);
+          try {
+            await updateDoc(doc(db, 'items', id), { visible: newVisible });
+            Swal.fire('✅', `Item agora ${newVisible ? 'visível' : 'oculto'}.`, 'success');
+            await carregarTudo();
+          } catch (err) {
+            console.error(err);
+            Swal.fire('❌ Erro', 'Não foi possível atualizar o item.', 'error');
+          }
+        }));
+      }
+
+      // Users table
+      function renderUsersTable() {
+        if (allUsers.length === 0) {
+          usersTable.innerHTML = '<p class="text-gray-400 p-4">Nenhum utilizador registado.</p>';
+          return;
+        }
+        // compute articles per user
+        const counts = {};
+        allItems.forEach(i => { counts[i.uid] = (counts[i.uid]||0) + 1; });
+
+        const rows = allUsers.map(u => {
+          const blocked = u.blocked === true;
+          const articles = counts[u.id] || 0;
+          return `
+            <div class="p-3 border-b border-[rgba(255,255,255,0.03)] flex items-center justify-between">
+              <div>
+                <div class="font-semibold">${u.nome || '—'} ${u.email ? `<span class="small">(${u.email})</span>` : ''}</div>
+                <div class="small">Artigos: ${articles}</div>
+              </div>
+              <div class="flex gap-2">
+                <button data-uid="${u.id}" class="btn-block bg-${blocked ? 'green' : 'red'}-600 text-white px-3 py-1 rounded text-sm">${blocked ? 'Desbloquear' : 'Bloquear'}</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        usersTable.innerHTML = rows;
+
+        usersTable.querySelectorAll('.btn-block').forEach(b => b.addEventListener('click', async (e) => {
+          const uid = e.currentTarget.dataset.uid;
+          const userDoc = doc(db, 'users', uid);
+          const userObj = allUsers.find(x => x.id === uid) || {};
+          const blocked = userObj.blocked === true;
+          const verb = blocked ? 'desbloquear' : 'bloquear';
+          const conf = await Swal.fire({ title: `${verb} utilizador?`, text: `Deseja ${verb} este utilizador?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Confirmar' });
+          if (!conf.isConfirmed) return;
+          try {
+            await updateDoc(userDoc, { blocked: !blocked });
+            Swal.fire('✅', `Utilizador ${blocked ? 'desbloqueado' : 'bloqueado'} com sucesso.`, 'success');
+            await carregarTudo();
+          } catch (err) {
+            console.error(err);
+            Swal.fire('❌ Erro', 'Não foi possível atualizar o utilizador.', 'error');
+          }
+        }));
+      }
+
+      // Chart render: items per category
+      let chart = null;
+      function renderChart() {
+        const counts = {};
+        allItems.forEach(i => { const c = i.categoria || 'Outros'; counts[c] = (counts[c]||0) + 1; });
+        const labels = Object.keys(counts);
+        const data = labels.map(l => counts[l]);
+        if (chart) chart.destroy();
+        chart = new Chart(chartCtx, {
+          type: 'pie',
+          data: { labels, datasets: [{ data, backgroundColor: ['#0ea5e9','#3b82f6','#60a5fa','#34d399','#f97316','#f43f5e'] }] },
+          options: { plugins: { legend: { position: 'bottom', labels: { color: '#e6f0ff' } } } }
+        });
+      }
+
+      // Filter change
+      filterCat.addEventListener('change', renderItemsTable);
+
+      if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
+      document.getElementById('ano').textContent = new Date().getFullYear();
+
+    } catch (err) {
+      console.error('Erro admin:', err);
+      Swal.fire('❌ Erro ao carregar painel', (err && err.message) ? err.message : 'Erro desconhecido', 'error').then(()=>window.location.href='index.html');
+    }
+  })();
+  </script>
+</body>
+</html>
