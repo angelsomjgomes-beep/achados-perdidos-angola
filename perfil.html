@@ -24,27 +24,41 @@
       border-radius: 16px;
       padding: 1.5rem;
     }
+    .banner {
+      position: relative;
+      background: linear-gradient(135deg, rgba(13,42,78,1), rgba(17,34,68,1));
+      height: 130px;
+      border-radius: 0 0 20px 20px;
+      margin-top: 56px;
+    }
+    .avatar-container { position: relative; top: -48px; }
   </style>
 </head>
 <body>
+  <!-- Navbar dinâmica -->
   <header class="text-white p-4 fixed w-full top-0 left-0 z-40 backdrop-blur-md bg-[rgba(10,25,47,0.85)]">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
-        <i data-lucide="user" class="w-6 h-6"></i> Meu Perfil
+        <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
       <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
-        <a href="index.html" class="hover:underline text-gray-300">🏠 Início</a>
+        <a id="perfil-link" href="login.html" class="hover:underline text-blue-400">🔑 Login</a>
       </nav>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto mt-28 p-6 space-y-6">
+  <!-- Banner visual -->
+  <div class="banner"></div>
+
+  <main class="max-w-4xl mx-auto p-6 space-y-6">
     <!-- Perfil -->
-    <div id="perfil-card" class="card text-center">
-      <img id="foto-perfil" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Avatar" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-blue-500">
-      <h2 id="nome" class="text-xl font-bold">Carregando...</h2>
+    <div id="perfil-card" class="card text-center -mt-16">
+      <div class="avatar-container">
+        <img id="foto-perfil" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Avatar" class="w-28 h-28 rounded-full mx-auto border-4 border-blue-500 shadow-lg object-cover bg-gray-800">
+      </div>
+      <h2 id="nome" class="text-2xl font-bold mt-2">Carregando...</h2>
       <p id="email" class="text-sm text-gray-300 mb-3">---</p>
 
       <div class="space-y-2 text-sm text-gray-400 mb-4">
@@ -52,8 +66,10 @@
         <p><b>🎂 Idade:</b> <span id="idade">Não informada</span></p>
       </div>
 
-      <button id="btn-editar" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold text-white">✏️ Editar Perfil</button>
-      <button id="btn-sair" class="mt-3 bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold text-white">Sair</button>
+      <div class="flex justify-center gap-3">
+        <button id="btn-editar" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold text-white">✏️ Editar Perfil</button>
+        <button id="btn-sair" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-semibold text-white">Sair</button>
+      </div>
     </div>
 
     <!-- Meus Artigos -->
@@ -70,125 +86,231 @@
   <script type="module">
     (async () => {
       try {
-        const [{ initializeApp }, { getFirestore, collection, query, where, getDocs, doc, setDoc, getDoc }, { getAuth, onAuthStateChanged, signOut }, lucideModule] = await Promise.all([
+        // Imports (dinâmicos para capturar erros)
+        const [
+          { initializeApp },
+          { getFirestore, collection, query, where, getDocs, doc, setDoc, getDoc, serverTimestamp },
+          { getAuth, onAuthStateChanged, signOut, updateProfile },
+          lucideModule
+        ] = await Promise.all([
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
           import('https://unpkg.com/lucide@latest')
         ]);
 
-        const firebaseCfg = await import('./firebase-config.js').catch(() => {
-          throw new Error('❌ Ficheiro firebase-config.js não encontrado ou inválido.');
-        });
+        const firebaseCfg = await import('./firebase-config.js').catch(() => null);
+        if (!firebaseCfg) throw new Error('❌ O ficheiro firebase-config.js não foi encontrado. Coloca-o na mesma pasta.');
 
+        // Inicializar Firebase
         const app = initializeApp(firebaseCfg.firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // Cloudinary (usa as credenciais combinadas que pediste)
+        const cloudName = 'dyylw9hjm';
+        const uploadPreset = 'ml_default';
+
+        // Elements
         const nomeEl = document.getElementById('nome');
         const emailEl = document.getElementById('email');
-        const artigosEl = document.getElementById('meus-artigos');
-        const btnSair = document.getElementById('btn-sair');
-        const btnEditar = document.getElementById('btn-editar');
         const locEl = document.getElementById('localizacao');
         const idadeEl = document.getElementById('idade');
         const fotoEl = document.getElementById('foto-perfil');
+        const artigosEl = document.getElementById('meus-artigos');
+        const btnEditar = document.getElementById('btn-editar');
+        const btnSair = document.getElementById('btn-sair');
+        const perfilLink = document.getElementById('perfil-link');
 
+        let currentUser = null;
+
+        // Atualiza ano no footer
+        document.getElementById('ano').textContent = new Date().getFullYear();
+
+        // Função para carregar artigos do user
+        async function carregarArtigos(uid) {
+          artigosEl.innerHTML = '<p class="text-gray-400 text-center">A carregar artigos...</p>';
+          try {
+            const q = query(collection(db, 'items'), where('uid', '==', uid));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+              artigosEl.innerHTML = '<p class="text-gray-400 text-center">Nenhum artigo publicado ainda.</p>';
+              return;
+            }
+            artigosEl.innerHTML = '';
+            snap.forEach(d => {
+              const data = d.data();
+              const card = document.createElement('div');
+              card.className = 'bg-[rgba(255,255,255,0.05)] p-3 rounded-md border border-[rgba(255,255,255,0.08)]';
+              card.innerHTML = `
+                <div class="flex items-center gap-3">
+                  <img src="${data.fotoURL || 'https://cdn-icons-png.flaticon.com/512/151/151970.png'}" class="w-16 h-16 rounded object-cover">
+                  <div>
+                    <h4 class="font-semibold text-blue-200">${data.titulo}</h4>
+                    <p class="text-gray-400 text-sm">${data.categoria} — ${data.tipo}</p>
+                    <p class="text-gray-500 text-xs">${new Date(data.created_at?.seconds * 1000 || Date.now()).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              `;
+              artigosEl.appendChild(card);
+            });
+          } catch (e) {
+            console.error('Erro ao carregar artigos:', e);
+            artigosEl.innerHTML = '<p class="text-red-400 text-center">Erro ao carregar artigos.</p>';
+          }
+        }
+
+        // Escuta do estado de autenticação
         onAuthStateChanged(auth, async (user) => {
           if (!user) {
+            // não autenticado → redireciona para login
             Swal.fire({
               icon: 'warning',
-              title: 'Sessão encerrada',
-              text: 'Por favor, faça login para acessar o perfil.',
-              confirmButtonText: 'Ir para Login'
+              title: 'Sessão necessária',
+              text: 'Faça login para acessar o seu perfil.',
+              confirmButtonText: 'Ir para login'
             }).then(() => (window.location.href = 'login.html'));
             return;
           }
 
-          // Dados básicos
+          currentUser = user;
+          // Navbar: mostrar Perfil
+          perfilLink.textContent = '👤 Perfil';
+          perfilLink.href = 'perfil.html';
+
+          // Preencher dados visíveis
           nomeEl.textContent = user.displayName || 'Utilizador sem nome';
-          emailEl.textContent = user.email || 'Sem email';
+          emailEl.textContent = user.email || (user.phoneNumber || 'Sem email');
           fotoEl.src = user.photoURL || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
-          // Buscar dados adicionais
+          // Puxar dados extras do Firestore users/{uid}
           const userRef = doc(db, 'users', user.uid);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
             const data = userSnap.data();
             locEl.textContent = data.localizacao || 'Não informada';
             idadeEl.textContent = data.idade || 'Não informada';
-          }
-
-          // Buscar artigos publicados
-          const q = query(collection(db, 'items'), where('uid', '==', user.uid));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            artigosEl.innerHTML = '<p class="text-gray-400 text-center">Nenhum artigo publicado ainda.</p>';
           } else {
-            artigosEl.innerHTML = '';
-            snap.forEach((doc) => {
-              const d = doc.data();
-              const card = document.createElement('div');
-              card.className = 'bg-[rgba(255,255,255,0.05)] p-3 rounded-md border border-[rgba(255,255,255,0.08)]';
-              card.innerHTML = `
-                <div class="flex items-center gap-3">
-                  <img src="${d.fotoURL || 'https://cdn-icons-png.flaticon.com/512/151/151970.png'}" class="w-16 h-16 rounded object-cover">
-                  <div>
-                    <h4 class="font-semibold text-blue-200">${d.titulo}</h4>
-                    <p class="text-gray-400 text-sm">${d.categoria} — ${d.tipo}</p>
-                    <p class="text-gray-500 text-xs">${new Date(d.created_at?.seconds * 1000 || Date.now()).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              `;
-              artigosEl.appendChild(card);
-            });
+            locEl.textContent = 'Não informada';
+            idadeEl.textContent = 'Não informada';
           }
 
-          // Editar perfil
-          btnEditar.addEventListener('click', async () => {
+          // Carregar artigos do utilizador
+          carregarArtigos(user.uid);
+        });
+
+        // Editar perfil (abre modal SweetAlert com inputs e upload)
+        btnEditar.addEventListener('click', async () => {
+          try {
             const { value: formValues } = await Swal.fire({
               title: 'Editar Perfil',
               html: `
-                <input id="swal-nome" class="swal2-input" placeholder="Nome" value="${user.displayName || ''}">
+                <input id="swal-nome" class="swal2-input" placeholder="Nome" value="${currentUser?.displayName || ''}">
                 <input id="swal-local" class="swal2-input" placeholder="Localização" value="${locEl.textContent || ''}">
-                <input id="swal-idade" type="number" min="10" max="100" class="swal2-input" placeholder="Idade" value="${idadeEl.textContent || ''}">
+                <input id="swal-idade" type="number" min="10" max="120" class="swal2-input" placeholder="Idade" value="${idadeEl.textContent || ''}">
+                <label class="block text-left text-xs text-gray-200 mt-2 mb-1">Alterar foto de perfil (opcional)</label>
+                <input id="swal-avatar" type="file" accept="image/*" class="swal2-file" />
               `,
               focusConfirm: false,
-              preConfirm: () => ({
-                nome: document.getElementById('swal-nome').value,
-                localizacao: document.getElementById('swal-local').value,
-                idade: document.getElementById('swal-idade').value
-              }),
-              confirmButtonText: '💾 Guardar',
               showCancelButton: true,
-              cancelButtonText: 'Cancelar'
+              confirmButtonText: '💾 Guardar',
+              preConfirm: async () => {
+                const nome = document.getElementById('swal-nome').value.trim();
+                const local = document.getElementById('swal-local').value.trim();
+                const idade = document.getElementById('swal-idade').value.trim();
+                const arquivo = document.getElementById('swal-avatar').files[0];
+
+                // validações simples
+                if (nome.length > 100) throw new Error('Nome demasiado longo (max 100 caracteres).');
+                if (idade && (isNaN(idade) || idade < 10 || idade > 120)) throw new Error('Idade inválida.');
+
+                // se houver arquivo, faz upload primeiro
+                let fotoURL = null;
+                if (arquivo) {
+                  // upload Cloudinary
+                  const fd = new FormData();
+                  fd.append('file', arquivo);
+                  fd.append('upload_preset', uploadPreset);
+                  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                    method: 'POST',
+                    body: fd
+                  });
+                  if (!res.ok) {
+                    const txt = await res.text().catch(()=>null);
+                    throw new Error('Erro no upload da imagem. ' + (txt || ''));
+                  }
+                  const j = await res.json();
+                  fotoURL = j.secure_url;
+                }
+
+                return { nome, local, idade, fotoURL };
+              }
             });
 
-            if (formValues) {
-              await setDoc(userRef, formValues, { merge: true });
-              Swal.fire('✅ Guardado!', 'O perfil foi atualizado com sucesso.', 'success');
-              locEl.textContent = formValues.localizacao || 'Não informada';
-              idadeEl.textContent = formValues.idade || 'Não informada';
-              nomeEl.textContent = formValues.nome || nomeEl.textContent;
+            if (!formValues) return; // cancelado
+
+            // mostrar loading enquanto grava
+            Swal.fire({ title: 'A gravar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            // Atualizar Auth profile (se necessário)
+            const updates = {};
+            if (formValues.nome) updates.displayName = formValues.nome;
+            if (formValues.fotoURL) updates.photoURL = formValues.fotoURL;
+
+            if (Object.keys(updates).length > 0) {
+              try {
+                await updateProfile(auth.currentUser, updates);
+              } catch (e) {
+                console.warn('Não foi possível atualizar o perfil Auth:', e);
+              }
             }
-          });
+
+            // Atualizar Firestore users/{uid}
+            const userRef = doc(db, 'users', currentUser.uid);
+            const toSave = {
+              localizacao: formValues.local || null,
+              idade: formValues.idade || null,
+              updated_at: serverTimestamp()
+            };
+            if (formValues.fotoURL) toSave.photoURL = formValues.fotoURL;
+            if (formValues.nome) toSave.nome = formValues.nome;
+
+            await setDoc(userRef, toSave, { merge: true });
+
+            // Atualiza UI localmente
+            nomeEl.textContent = formValues.nome || nomeEl.textContent;
+            locEl.textContent = formValues.local || locEl.textContent;
+            idadeEl.textContent = formValues.idade || idadeEl.textContent;
+            if (formValues.fotoURL) fotoEl.src = formValues.fotoURL;
+
+            Swal.fire('✅ Guardado', 'Perfil atualizado com sucesso.', 'success');
+
+          } catch (err) {
+            console.error('Erro ao editar perfil:', err);
+            Swal.fire('❌ Erro', (err && err.message) ? err.message : 'Erro ao atualizar perfil.', 'error');
+          }
         });
 
-        // Sair da conta
+        // Logout
         btnSair.addEventListener('click', async () => {
-          await signOut(auth);
-          Swal.fire('👋', 'Sessão terminada com sucesso.', 'info');
-          setTimeout(() => (window.location.href = 'index.html'), 1200);
+          try {
+            await signOut(auth);
+            Swal.fire('👋', 'Sessão terminada com sucesso.', 'info');
+            setTimeout(() => (window.location.href = 'index.html'), 1100);
+          } catch (e) {
+            console.error('Erro no logout:', e);
+            Swal.fire('❌ Erro', 'Não foi possível terminar sessão.', 'error');
+          }
         });
 
         if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
-        document.getElementById('ano').textContent = new Date().getFullYear();
 
       } catch (err) {
         console.error(err);
-        Swal.fire('❌ Erro ao carregar perfil', err.message || String(err), 'error');
+        Swal.fire('❌ Erro ao carregar perfil', err?.message || String(err), 'error');
       }
     })();
   </script>
 </body>
 </html>
+
