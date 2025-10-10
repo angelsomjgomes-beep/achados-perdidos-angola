@@ -40,6 +40,7 @@
   </style>
 </head>
 <body>
+  <!-- ✅ Navbar dinâmica -->
   <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
@@ -48,6 +49,7 @@
       <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="index.html" class="hover:underline">🏠 Início</a>
         <a href="feed.html" class="hover:underline">📰 Feed</a>
+        <a id="perfil-link" href="login.html" class="hover:underline text-blue-400">🔑 Login</a>
       </nav>
     </div>
   </header>
@@ -85,7 +87,12 @@
   <script type="module">
     (async () => {
       try {
-        const [{ initializeApp }, { getFirestore, addDoc, collection, serverTimestamp }, { getAuth, onAuthStateChanged }, lucideModule] = await Promise.all([
+        const [
+          { initializeApp },
+          { getFirestore, addDoc, collection, serverTimestamp },
+          { getAuth, onAuthStateChanged },
+          lucideModule
+        ] = await Promise.all([
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
@@ -99,14 +106,26 @@
         const app = initializeApp(firebaseCfg.firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const perfilLink = document.getElementById("perfil-link");
 
         const form = document.getElementById('form-publicar');
         const cloudName = 'dyylw9hjm';
         const uploadPreset = 'ml_default';
-
         let userLogado = null;
 
-        // Verifica se o utilizador está logado
+        // Navbar dinâmica
+        onAuthStateChanged(auth, (user) => {
+          userLogado = user;
+          if (user) {
+            perfilLink.textContent = "👤 Perfil";
+            perfilLink.href = "perfil.html";
+          } else {
+            perfilLink.textContent = "🔑 Login";
+            perfilLink.href = "login.html";
+          }
+        });
+
+        // Verifica sessão
         onAuthStateChanged(auth, (user) => {
           userLogado = user;
           if (!user) {
@@ -118,14 +137,14 @@
               didOpen: () => {
                 document.getElementById('ir-login').addEventListener('click', () => {
                   Swal.close();
-                  window.location.href = 'index.html#login';
+                  window.location.href = 'login.html';
                 });
               }
             });
           }
         });
 
-        // Publicar item
+        // Submeter item
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
 
@@ -198,3 +217,4 @@
   </script>
 </body>
 </html>
+
