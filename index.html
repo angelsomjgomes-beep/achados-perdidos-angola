@@ -76,7 +76,7 @@
     <p class="text-gray-300 mt-2">A procurar objetos perdidos...</p>
   </div>
 
-  <!-- Header -->
+  <!-- Header com Navbar dinâmica -->
   <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl hover:scale-105 transition">
@@ -87,7 +87,7 @@
         <a href="index.html" class="underline font-semibold">🏠 Início</a>
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
-        <button id="login-open" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200">🔑 Login</button>
+        <a id="perfil-link" href="login.html" class="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-200">🔑 Login</a>
       </nav>
     </div>
   </header>
@@ -108,7 +108,9 @@
     </div>
   </main>
 
-  <footer class="navy text-white p-6 text-center mt-auto">© <span id="ano"></span> Achados & Perdidos Angola</footer>
+  <footer class="navy text-white p-6 text-center mt-auto">
+    © <span id="ano"></span> Achados & Perdidos Angola
+  </footer>
 
   <a href="publicar.html" class="float-btn" aria-label="Publicar">➕</a>
 
@@ -123,90 +125,97 @@
     </div>
   </div>
 
-  <!-- Script Corrigido -->
+  <!-- Script unificado -->
   <script type="module">
-    (async () => {
-      const hideLoader = () => {
-        const loader = document.getElementById('loader');
-        if (loader) loader.classList.add('hidden');
-      };
+  (async () => {
+    const hideLoader = () => {
+      const loader = document.getElementById('loader');
+      if (loader) loader.classList.add('hidden');
+    };
 
-      try {
-        const [{ initializeApp }, authModule, lucideModule] = await Promise.all([
-          import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js').then(m => ({ initializeApp: m.initializeApp })),
-          import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
-          import('https://unpkg.com/lucide@latest')
-        ]);
+    try {
+      const [{ initializeApp }, authModule, lucideModule] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js').then(m => ({ initializeApp: m.initializeApp })),
+        import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
+        import('https://unpkg.com/lucide@latest')
+      ]);
 
-        const firebaseCfg = await import('./firebase-config.js').catch(() => {
-          throw new Error('❌ O ficheiro firebase-config.js não foi encontrado ou tem erro. Coloca-o na mesma pasta.');
-        });
+      const firebaseCfg = await import('./firebase-config.js').catch(() => null);
+      const perfilLink = document.getElementById('perfil-link');
 
-        const app = initializeApp(firebaseCfg.firebaseConfig);
-        const { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } = authModule;
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
+      if (!firebaseCfg) throw new Error('⚠️ Ficheiro firebase-config.js não encontrado!');
 
-        // Navbar scroll effect
-        window.addEventListener('scroll', () => {
-          const header = document.querySelector('header');
-          if (header) header.classList.toggle('scrolled', window.scrollY > 50);
-        });
+      const app = initializeApp(firebaseCfg.firebaseConfig);
+      const { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } = authModule;
+      const auth = getAuth(app);
+      const provider = new GoogleAuthProvider();
 
-        // Login Modal
-        document.getElementById('login-open')?.addEventListener('click', () => document.getElementById('login-modal')?.classList.remove('hidden'));
-        document.getElementById('close-modal')?.addEventListener('click', () => document.getElementById('login-modal')?.classList.add('hidden'));
-
-        document.getElementById('login-google')?.addEventListener('click', async () => {
-          try {
-            await signInWithPopup(auth, provider);
-            Swal.fire('✅ Bem-vindo!', 'Login efetuado com sucesso.', 'success');
-            document.getElementById('login-modal')?.classList.add('hidden');
-          } catch (err) {
-            Swal.fire('❌ Erro', err.message, 'error');
-          }
-        });
-
-        document.getElementById('login-phone')?.addEventListener('click', async () => {
-          const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
-          if (!numero) return;
-          try {
-            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
-            const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
-            const codigo = prompt('Digite o código SMS recebido:');
-            if (codigo) await confirmation.confirm(codigo);
-            Swal.fire('✅', 'Login efetuado com sucesso!', 'success');
-            document.getElementById('login-modal')?.classList.add('hidden');
-          } catch (err) {
-            Swal.fire('❌ Erro', err.message, 'error');
-          }
-        });
-
-        onAuthStateChanged(auth, (user) => {
-          if (user) {
-            document.getElementById('user-name').textContent = user.displayName || user.phoneNumber || 'Utilizador';
-            document.getElementById('user-area').classList.remove('hidden');
-          }
-        });
-
-        if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
-
-      } catch (err) {
-        console.error(err);
-        if (window.Swal) {
-          Swal.fire('❌ Erro ao iniciar página', err.message || String(err), 'error');
+      // Navbar dinâmica
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          perfilLink.textContent = '👤 Perfil';
+          perfilLink.href = 'perfil.html';
+          document.getElementById('user-name').textContent = user.displayName || user.phoneNumber || 'Utilizador';
+          document.getElementById('user-area').classList.remove('hidden');
         } else {
-          alert('Erro: ' + (err.message || String(err)));
+          perfilLink.textContent = '🔑 Login';
+          perfilLink.href = 'login.html';
         }
-      } finally {
-        hideLoader();
-        try { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch (e) {}
-      }
+      });
 
+      // Navbar scroll effect
+      window.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (header) header.classList.toggle('scrolled', window.scrollY > 50);
+      });
+
+      // Login Modal
+      document.getElementById('perfil-link').addEventListener('click', (e) => {
+        if (perfilLink.textContent.includes('Login')) {
+          e.preventDefault();
+          document.getElementById('login-modal')?.classList.remove('hidden');
+        }
+      });
+      document.getElementById('close-modal')?.addEventListener('click', () => document.getElementById('login-modal')?.classList.add('hidden'));
+
+      // Login Google
+      document.getElementById('login-google')?.addEventListener('click', async () => {
+        try {
+          await signInWithPopup(auth, provider);
+          Swal.fire('✅ Bem-vindo!', 'Login efetuado com sucesso.', 'success');
+          document.getElementById('login-modal')?.classList.add('hidden');
+        } catch (err) {
+          Swal.fire('❌ Erro', err.message, 'error');
+        }
+      });
+
+      // Login Telefone
+      document.getElementById('login-phone')?.addEventListener('click', async () => {
+        const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
+        if (!numero) return;
+        try {
+          window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+          const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
+          const codigo = prompt('Digite o código SMS recebido:');
+          if (codigo) await confirmation.confirm(codigo);
+          Swal.fire('✅', 'Login efetuado com sucesso!', 'success');
+          document.getElementById('login-modal')?.classList.add('hidden');
+        } catch (err) {
+          Swal.fire('❌ Erro', err.message, 'error');
+        }
+      });
+
+      if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
+
+    } catch (err) {
+      console.error(err);
+      Swal.fire('❌ Erro', err.message || String(err), 'error');
+    } finally {
+      hideLoader();
       document.getElementById('ano').textContent = new Date().getFullYear();
-    })();
+    }
+  })();
   </script>
 </body>
 </html>
-
 
