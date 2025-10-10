@@ -61,6 +61,7 @@
   </style>
 </head>
 <body>
+  <!-- ✅ Navbar dinâmica -->
   <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
@@ -70,6 +71,7 @@
         <a href="index.html" class="hover:underline">🏠 Início</a>
         <a href="feed.html" class="underline font-semibold">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
+        <a id="perfil-link" href="login.html" class="hover:underline text-blue-400">🔑 Login</a>
       </nav>
     </div>
   </header>
@@ -92,12 +94,21 @@
   </main>
 
   <a href="publicar.html" class="float-btn" aria-label="Publicar">➕</a>
-  <footer class="navy text-white p-6 text-center mt-8">© <span id="ano"></span> Achados & Perdidos Angola</footer>
 
+  <footer class="navy text-white p-6 text-center mt-8">
+    © <span id="ano"></span> Achados & Perdidos Angola
+  </footer>
+
+  <!-- ✅ Script atualizado -->
   <script type="module">
     (async () => {
       try {
-        const [{ initializeApp }, { getFirestore, collection, query, orderBy, getDocs }, { getAuth, onAuthStateChanged }, lucideModule] = await Promise.all([
+        const [
+          { initializeApp },
+          { getFirestore, collection, query, orderBy, getDocs },
+          { getAuth, onAuthStateChanged },
+          lucideModule
+        ] = await Promise.all([
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
@@ -112,6 +123,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         let userId = null;
+        const perfilLink = document.getElementById("perfil-link");
 
         const feedEl = document.getElementById('feed');
         const semItens = document.getElementById('sem-itens');
@@ -119,6 +131,20 @@
         const filtro = document.getElementById('filtro');
         let todos = [];
 
+        // Navbar dinâmica
+        onAuthStateChanged(auth, (user) => {
+          userId = user ? user.uid : null;
+          if (user) {
+            perfilLink.textContent = "👤 Perfil";
+            perfilLink.href = "perfil.html";
+          } else {
+            perfilLink.textContent = "🔑 Login";
+            perfilLink.href = "login.html";
+          }
+          carregar();
+        });
+
+        // Carregar feed
         async function carregar() {
           Swal.fire({ title: 'A carregar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
           try {
@@ -177,11 +203,6 @@
 
         search.addEventListener('input', render);
         filtro.addEventListener('change', render);
-
-        onAuthStateChanged(auth, (user) => {
-          userId = user ? user.uid : null;
-          carregar();
-        });
 
         if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
         document.getElementById('ano').textContent = new Date().getFullYear();
