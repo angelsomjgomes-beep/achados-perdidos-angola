@@ -14,12 +14,20 @@
     body {
       font-family: 'Inter', sans-serif;
       background: radial-gradient(circle at top left, #0a192f, #112240, #0a192f);
+      background-size: 200% 200%;
+      animation: movimento 12s ease infinite;
       color: #e6f0ff;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       overflow: hidden;
+    }
+    @keyframes movimento {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 0%; }
     }
     .card {
       background: rgba(255, 255, 255, 0.06);
@@ -28,39 +36,68 @@
       border-radius: 16px;
       padding: 2rem;
       width: 100%;
-      max-width: 380px;
+      max-width: 400px;
       text-align: center;
       box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      animation: aparecer 0.8s ease forwards;
+      opacity: 0;
+      transform: translateY(30px);
     }
-    button {
-      transition: all 0.2s ease;
+    @keyframes aparecer {
+      to { opacity: 1; transform: translateY(0); }
     }
-    button:hover {
-      transform: scale(1.03);
+    button { transition: all 0.25s ease; }
+    button:hover { transform: scale(1.05); }
+    header {
+      backdrop-filter: blur(6px);
+      background: rgba(10,25,47,0.85);
+      transition: 0.4s;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <i data-lucide="search" class="w-10 h-10 mx-auto mb-3 text-blue-400"></i>
-    <h1 class="text-2xl font-bold mb-2">Iniciar Sessão</h1>
-    <p class="text-gray-300 mb-6 text-sm">Escolha uma das opções para continuar</p>
+  <!-- Navbar -->
+  <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
+        <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
+      </a>
+      <nav class="flex items-center gap-6 text-sm font-medium">
+        <a href="feed.html" class="hover:underline">📰 Feed</a>
+        <a href="publicar.html" class="hover:underline">➕ Publicar</a>
+        <a href="index.html" class="hover:underline text-gray-300">🏠 Início</a>
+      </nav>
+    </div>
+  </header>
 
-    <button id="login-google" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded mb-3 font-semibold">🔑 Entrar com Google</button>
-    <button id="login-phone" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-3 font-semibold">📱 Entrar com Telefone</button>
+  <main class="flex-1 flex flex-col items-center justify-center mt-20">
+    <div class="card">
+      <i data-lucide="search" class="w-10 h-10 mx-auto mb-3 text-blue-400"></i>
+      <h1 class="text-2xl font-bold mb-2">Iniciar Sessão</h1>
+      <p class="text-gray-300 mb-6 text-sm">Escolha uma das opções para continuar</p>
 
-    <div id="recaptcha-container"></div>
+      <button id="login-google" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded mb-3 font-semibold">🔑 Entrar com Google</button>
+      <button id="login-phone" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-3 font-semibold">📱 Entrar com Telefone</button>
 
-    <p class="text-gray-400 text-sm mt-4">
-      Depois de iniciar sessão, poderá publicar e gerir os seus itens perdidos/encontrados.
-    </p>
-    <a href="index.html" class="block mt-4 text-blue-400 hover:underline text-sm">⬅️ Voltar ao Início</a>
-  </div>
+      <div id="recaptcha-container"></div>
+
+      <p class="text-gray-400 text-sm mt-4">
+        Após iniciar sessão, poderá publicar e gerir os seus itens perdidos/encontrados.
+      </p>
+      <a href="index.html" class="block mt-4 text-blue-400 hover:underline text-sm">⬅️ Voltar ao Início</a>
+    </div>
+  </main>
+
+  <footer class="text-gray-400 text-sm text-center mt-8 mb-3">© <span id="ano"></span> Achados & Perdidos Angola</footer>
 
   <script type="module">
     (async () => {
       try {
-        const [{ initializeApp }, { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged }, lucideModule] = await Promise.all([
+        const [
+          { initializeApp },
+          { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged },
+          lucideModule
+        ] = await Promise.all([
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js'),
           import('https://unpkg.com/lucide@latest')
@@ -74,7 +111,9 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // Login com Google
+        document.getElementById('ano').textContent = new Date().getFullYear();
+
+        // Login Google
         document.getElementById('login-google').addEventListener('click', async () => {
           try {
             await signInWithPopup(auth, provider);
@@ -85,7 +124,7 @@
           }
         });
 
-        // Login com Telefone
+        // Login Telefone
         document.getElementById('login-phone').addEventListener('click', async () => {
           const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
           if (!numero) return;
@@ -103,14 +142,14 @@
           }
         });
 
-        // Detetar login automático
+        // Sessão ativa
         onAuthStateChanged(auth, (user) => {
           if (user) {
             Swal.fire({
               icon: 'success',
               title: 'Sessão ativa',
               text: 'Já está autenticado!',
-              timer: 1500,
+              timer: 1300,
               showConfirmButton: false
             });
             setTimeout(() => location.href = 'feed.html', 1000);
@@ -118,6 +157,7 @@
         });
 
         if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
+
       } catch (err) {
         console.error(err);
         Swal.fire('❌ Erro ao iniciar página', err.message || String(err), 'error');
@@ -126,5 +166,4 @@
   </script>
 </body>
 </html>
-
 
