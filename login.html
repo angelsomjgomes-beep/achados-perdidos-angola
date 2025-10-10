@@ -36,41 +36,48 @@
       border-radius: 16px;
       padding: 2rem;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       text-align: center;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-      animation: aparecer 0.8s ease forwards;
+      box-shadow: 0 8px 40px rgba(2,6,23,0.6);
+      animation: aparecer 0.7s ease forwards;
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(18px);
     }
     @keyframes aparecer {
       to { opacity: 1; transform: translateY(0); }
     }
-    button { transition: all 0.25s ease; }
-    button:hover { transform: scale(1.05); }
     header {
       backdrop-filter: blur(6px);
       background: rgba(10,25,47,0.85);
       transition: 0.4s;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+      z-index: 50;
     }
+    .link-btn { background: white; color: black; padding: .4rem .6rem; border-radius: 8px; }
+    .link-btn:hover { background: #f0f0f0; }
+    #recaptcha-container { display: none; }
   </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <header class="text-white p-4 fixed w-full top-0 left-0 z-40">
+  <!-- Header / Navbar -->
+  <header class="text-white p-4">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2 font-bold text-xl">
         <i data-lucide="search" class="w-6 h-6"></i> Achados & Perdidos
       </a>
-      <nav class="flex items-center gap-6 text-sm font-medium">
+      <nav class="flex items-center gap-4">
         <a href="feed.html" class="hover:underline">📰 Feed</a>
         <a href="publicar.html" class="hover:underline">➕ Publicar</a>
-        <a href="index.html" class="hover:underline text-gray-300">🏠 Início</a>
+        <a id="perfil-link" href="login.html" class="link-btn">🔑 Login</a>
       </nav>
     </div>
   </header>
 
-  <main class="flex-1 flex flex-col items-center justify-center mt-20">
+  <!-- Card de Login -->
+  <main class="flex-1 flex flex-col items-center justify-center mt-24">
     <div class="card">
       <i data-lucide="search" class="w-10 h-10 mx-auto mb-3 text-blue-400"></i>
       <h1 class="text-2xl font-bold mb-2">Iniciar Sessão</h1>
@@ -88,14 +95,15 @@
     </div>
   </main>
 
-  <footer class="text-gray-400 text-sm text-center mt-8 mb-3">© <span id="ano"></span> Achados & Perdidos Angola</footer>
+  <footer class="text-gray-400 text-sm text-center mt-8 mb-6">© <span id="ano"></span> Achados & Perdidos Angola</footer>
 
   <script type="module">
     (async () => {
       try {
+        // Carrega módulos Firebase e utilitários
         const [
           { initializeApp },
-          { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged },
+          authModule,
           lucideModule
         ] = await Promise.all([
           import('https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js'),
@@ -103,64 +111,139 @@
           import('https://unpkg.com/lucide@latest')
         ]);
 
-        const firebaseCfg = await import('./firebase-config.js').catch(() => {
-          throw new Error('❌ O ficheiro firebase-config.js não foi encontrado. Coloca-o na mesma pasta.');
-        });
+        // Carrega firebase-config.js (deve existir na mesma pasta)
+        const firebaseCfg = await import('./firebase-config.js').catch(() => null);
+        if (!firebaseCfg || !firebaseCfg.firebaseConfig) {
+          throw new Error('❌ O ficheiro firebase-config.js não foi encontrado ou está inválido. Coloca-o na mesma pasta.');
+        }
 
+        // Inicializa app + auth
         const app = initializeApp(firebaseCfg.firebaseConfig);
+        const { getAuth, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, signOut } = authModule;
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
+        // Atualiza ano no footer
         document.getElementById('ano').textContent = new Date().getFullYear();
 
-        // Login Google
+        // Perfil link DOM ref
+        const perfilLink = document.getElementById('perfil-link');
+
+        // Função: sincroniza/cria utilizador em Firestore e checa bloqueio
+        async function syncUserAndCheckBlocked(user) {
+          try {
+            const { getFirestore, doc, setDoc, serverTimestamp, getDoc } = await import('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js');
+            const db = getFirestore(app);
+            const userRef = doc(db, 'users', user.uid);
+
+            // cria/atualiza documento do user
+            await setDoc(userRef, {
+              uid: user.uid,
+              nome: user.displayName || null,
+              email: user.email || null,
+              telefone: user.phoneNumber || null,
+              foto: user.photoURL || null,
+              last_login: serverTimestamp(),
+              created_at: serverTimestamp()
+            }, { merge: true });
+
+            // verifica bloqueio
+            const snap = await getDoc(userRef);
+            if (snap.exists() && snap.data()?.blocked === true) {
+              // desloga e avisa
+              await signOut(auth);
+              await Swal.fire('🚫 Conta bloqueada', 'A sua conta foi temporariamente bloqueada pelo administrador.', 'warning');
+              window.location.href = 'index.html';
+              return false;
+            }
+
+            return true;
+          } catch (e) {
+            console.error('Erro ao sincronizar user:', e);
+            // não bloquear o login por erros de escrita – apenas informar
+            await Swal.fire('⚠️ Aviso', 'Login efetuado mas não foi possível sincronizar os dados (ver consola).', 'info');
+            return true;
+          }
+        }
+
+        // onAuthStateChanged: verifica sessão ativa
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            // sincroniza e checa se bloqueado
+            const ok = await syncUserAndCheckBlocked(user);
+            if (!ok) return;
+            // atualiza navbar e redireciona
+            perfilLink.textContent = '👤 Perfil';
+            perfilLink.href = 'perfil.html';
+            Swal.fire({ icon: 'success', title: 'Sessão ativa', text: 'Login efetuado!', timer: 1200, showConfirmButton: false });
+            setTimeout(() => location.href = 'feed.html', 900);
+          } else {
+            perfilLink.textContent = '🔑 Login';
+            perfilLink.href = 'login.html';
+          }
+        });
+
+        // Handler: Login Google
         document.getElementById('login-google').addEventListener('click', async () => {
           try {
             await signInWithPopup(auth, provider);
-            Swal.fire('✅ Sucesso', 'Login efetuado com Google!', 'success');
-            setTimeout(() => location.href = 'feed.html', 1000);
+            // onAuthStateChanged fará o restante (sync + redirect)
           } catch (err) {
-            Swal.fire('❌ Erro', err.message, 'error');
+            console.error('Erro Google signIn:', err);
+            const msg = err?.message || 'Erro ao iniciar sessão com Google.';
+            Swal.fire('❌ Erro', msg, 'error');
           }
         });
 
-        // Login Telefone
+        // Handler: Login por Telefone (usa reCAPTCHA invisível)
         document.getElementById('login-phone').addEventListener('click', async () => {
-          const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
-          if (!numero) return;
           try {
-            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+            const numero = prompt('📱 Digite o seu número (ex: +244911111111):');
+            if (!numero) return;
+
+            // Inicializa RecaptchaVerifier se ainda não existir
+            if (!window.__recaptcha_inited) {
+              // recaptcha só precisa de um container: usamos o #recaptcha-container oculto
+              window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+              window.__recaptcha_inited = true;
+            }
+
             const confirmation = await signInWithPhoneNumber(auth, numero, window.recaptchaVerifier);
             const codigo = prompt('Digite o código SMS recebido:');
-            if (codigo) {
-              await confirmation.confirm(codigo);
-              Swal.fire('✅ Sucesso', 'Login efetuado com telefone!', 'success');
-              setTimeout(() => location.href = 'feed.html', 1000);
+            if (!codigo) {
+              Swal.fire('Aviso', 'Código não fornecido.', 'warning');
+              return;
             }
+            await confirmation.confirm(codigo);
+            // onAuthStateChanged fará o restante
           } catch (err) {
-            Swal.fire('❌ Erro no login', err.message, 'error');
+            console.error('Erro Phone signIn:', err);
+            // Mensagens amigáveis para problemas comuns
+            if (err.code && err.code.includes('auth/too-many-requests')) {
+              Swal.fire('Erro', 'Muitas tentativas. Tente mais tarde.', 'error');
+            } else if (err.code && err.code.includes('auth/invalid-verification-code')) {
+              Swal.fire('Erro', 'Código inválido.', 'error');
+            } else {
+              Swal.fire('❌ Erro no login', err.message || String(err), 'error');
+            }
           }
         });
 
-        // Sessão ativa
-        onAuthStateChanged(auth, (user) => {
-          if (user) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Sessão ativa',
-              text: 'Já está autenticado!',
-              timer: 1300,
-              showConfirmButton: false
-            });
-            setTimeout(() => location.href = 'feed.html', 1000);
-          }
+        // Se o utilizador clicar no link perfil (quando mostra "Login"), abrimos a mesma página / nada adicional
+        perfilLink.addEventListener('click', (e) => {
+          // se está a pedir login na navbar, deixamos seguir para esta página.
+          // quando estiver logado, o link já redireciona para perfil.html
         });
 
         if (lucideModule && lucideModule.createIcons) lucideModule.createIcons();
 
       } catch (err) {
-        console.error(err);
-        Swal.fire('❌ Erro ao iniciar página', err.message || String(err), 'error');
+        console.error('Erro init login page:', err);
+        if (window.Swal) {
+          Swal.fire('❌ Erro ao iniciar página', err.message || String(err), 'error');
+        } else {
+          alert('Erro: ' + (err?.message || String(err)));
+        }
       }
     })();
   </script>
